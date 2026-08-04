@@ -1,4 +1,6 @@
-pytest pytest-cov httpx
+
+pytest-cov 
+
 fastapi
 uvicorn
 faker
