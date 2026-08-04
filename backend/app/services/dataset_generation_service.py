@@ -67,112 +67,64 @@ def generate_unique_value(column, row_index, unique_trackers):
     return value
 
 
+def _columns_of_types(columns, allowed_types):
+    return [
+        column
+        for column in columns
+        if column.type.lower() in allowed_types
+    ]
+
+
+def _pick_duplicate_target(columns, unique_trackers):
+    columns_with_existing_values = [
+        column
+        for column in columns
+        if column.unique
+        and column.name in unique_trackers
+        and len(unique_trackers[column.name]) > 0
+    ]
+
+    if columns_with_existing_values:
+        return random.choice(columns_with_existing_values)
+
+    unique_columns = [column for column in columns if column.unique]
+
+    if unique_columns:
+        return random.choice(unique_columns)
+
+    return None
+
+
 def pick_target_column(columns, case_type, unique_trackers):
-    numeric_types = {
-        "integer",
-        "number",
-        "decimal",
-        "float",
-        "currency_amount"
-    }
-
+    numeric_types = {"integer", "number", "decimal", "float", "currency_amount"}
     text_types = {
-        "string",
-        "long_text",
-        "name",
-        "first_name",
-        "last_name",
-        "address",
-        "company",
-        "job_title"
+        "string", "long_text", "name", "first_name",
+        "last_name", "address", "company", "job_title"
+    }
+    format_sensitive_types = {
+        "email", "phone", "uuid", "url", "ip_address",
+        "date", "datetime", "timestamp", "boolean"
     }
 
-    format_sensitive_types = {
-        "email",
-        "phone",
-        "uuid",
-        "url",
-        "ip_address",
-        "date",
-        "datetime",
-        "timestamp",
-        "boolean"
+    case_type_to_allowed_types = {
+        "range_violation_case": numeric_types,
+        "length_violation_case": text_types,
+        "format_violation_case": format_sensitive_types,
+        "boundary_case": numeric_types | text_types | {"date", "datetime", "timestamp", "category"},
+        "corner_case": numeric_types | text_types | {"date", "datetime", "timestamp", "category", "boolean"},
     }
 
     if case_type == "duplicate_case":
-        unique_columns_with_existing_values = [
-            column
-            for column in columns
-            if column.unique
-            and column.name in unique_trackers
-            and len(unique_trackers[column.name]) > 0
-        ]
+        duplicate_target = _pick_duplicate_target(columns, unique_trackers)
+        if duplicate_target is not None:
+            return duplicate_target
 
-        if unique_columns_with_existing_values:
-            return random.choice(unique_columns_with_existing_values)
+    allowed_types = case_type_to_allowed_types.get(case_type)
 
-        unique_columns = [
-            column
-            for column in columns
-            if column.unique
-        ]
-
-        if unique_columns:
-            return random.choice(unique_columns)
-
-    if case_type == "range_violation_case":
-        numeric_columns = [
-            column
-            for column in columns
-            if column.type.lower() in numeric_types
-        ]
-
-        if numeric_columns:
-            return random.choice(numeric_columns)
-
-    if case_type == "length_violation_case":
-        text_columns = [
-            column
-            for column in columns
-            if column.type.lower() in text_types
-        ]
-
-        if text_columns:
-            return random.choice(text_columns)
-
-    if case_type == "format_violation_case":
-        format_columns = [
-            column
-            for column in columns
-            if column.type.lower() in format_sensitive_types
-        ]
-
-        if format_columns:
-            return random.choice(format_columns)
-
-    if case_type == "boundary_case":
-        boundary_columns = [
-            column
-            for column in columns
-            if column.type.lower() in numeric_types
-            or column.type.lower() in text_types
-            or column.type.lower() in {"date", "datetime", "timestamp", "category"}
-        ]
-
-        if boundary_columns:
-            return random.choice(boundary_columns)
-
-    if case_type == "corner_case":
-        corner_columns = [
-            column
-            for column in columns
-            if column.type.lower() in numeric_types
-            or column.type.lower() in text_types
-            or column.type.lower() in {"date", "datetime", "timestamp", "category", "boolean"}
-        ]
-
-        if corner_columns:
-            return random.choice(corner_columns)
+    if allowed_types:
+        candidate_columns = _columns_of_types(columns, allowed_types)
+        if candidate_columns:
+            return random.choice(candidate_columns)
 
     return random.choice(columns)
 
@@ -199,6 +151,42 @@ def calculate_case_counts(rows):
 
     return case_counts
 
+def build_row_values(request, case_type, target_column, row_index, unique_trackers):
+    row = {}
+    case_reasons = []
+
+    for column in request.columns:
+        is_case_target = (
+            case_type != "normal"
+            and target_column is not None
+            and column.name == target_column.name
+        )
+
+        if is_case_target:
+            value, reason = generate_case_value(
+                column,
+                case_type,
+                row_index,
+                unique_trackers
+            )
+
+            if reason:
+                case_reasons.append(reason)
+
+            row[column.name] = value
+
+            if column.unique and case_type != "duplicate_case":
+                unique_trackers[column.name].add(value)
+        else:
+            value = generate_unique_value(
+                column,
+                row_index,
+                unique_trackers
+            )
+            row[column.name] = value
+
+    return row, case_reasons
+
 def generate_normal_dataset(request):
     initialize_seed(request.seed)
 
@@ -206,11 +194,8 @@ def generate_normal_dataset(request):
     unique_trackers = initialize_unique_trackers(request.columns)
 
     for row_index in range(request.row_count):
-        row = {}
-
         case_type = select_case_type(request.case_distribution)
         case_labels = get_case_labels(case_type)
-        case_reasons = []
 
         target_column = None
 
@@ -221,30 +206,13 @@ def generate_normal_dataset(request):
                 unique_trackers
             )
 
-        for column in request.columns:
-            if case_type != "normal" and column.name == target_column.name:
-                value, reason = generate_case_value(
-                    column,
-                    case_type,
-                    row_index,
-                    unique_trackers
-                )
-
-                if reason:
-                    case_reasons.append(reason)
-
-                row[column.name] = value
-
-                if column.unique and case_type != "duplicate_case":
-                    unique_trackers[column.name].add(value)
-
-            else:
-                value = generate_unique_value(
-                    column,
-                    row_index,
-                    unique_trackers
-                )
-                row[column.name] = value
+        row, case_reasons = build_row_values(
+            request,
+            case_type,
+            target_column,
+            row_index,
+            unique_trackers
+        )
 
         final_case_labels = build_final_case_labels(case_labels, case_reasons)
 

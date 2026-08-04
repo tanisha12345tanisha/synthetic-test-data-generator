@@ -39,30 +39,37 @@ class DistributionConfig(BaseModel):
             raise ValueError("Distribution min cannot be greater than distribution max.")
 
         if normalized_type == "normal":
-            if self.std is not None and self.std <= 0:
-                raise ValueError("Normal distribution std must be greater than 0.")
-
-        if normalized_type == "weighted":
-            if not self.weights:
-                raise ValueError("Weighted distribution requires weights.")
-
-            if any(weight < 0 for weight in self.weights.values()):
-                raise ValueError("Weighted distribution weights cannot be negative.")
-
-            if sum(self.weights.values()) <= 0:
-                raise ValueError("Weighted distribution weights must sum to more than 0.")
-
-        if normalized_type == "date_range":
-            if not self.start_date or not self.end_date:
-                raise ValueError("Date range distribution requires start_date and end_date.")
-
-            start = self._parse_strict_date(self.start_date)
-            end = self._parse_strict_date(self.end_date)
-
-            if start > end:
-                raise ValueError("Date range start_date cannot be after end_date.")
+            self._validate_normal()
+        elif normalized_type == "weighted":
+            self._validate_weighted()
+        elif normalized_type == "date_range":
+            self._validate_date_range()
 
         return self
+
+    def _validate_normal(self):
+        if self.std is not None and self.std <= 0:
+            raise ValueError("Normal distribution std must be greater than 0.")
+
+    def _validate_weighted(self):
+        if not self.weights:
+            raise ValueError("Weighted distribution requires weights.")
+
+        if any(weight < 0 for weight in self.weights.values()):
+            raise ValueError("Weighted distribution weights cannot be negative.")
+
+        if sum(self.weights.values()) <= 0:
+            raise ValueError("Weighted distribution weights must sum to more than 0.")
+
+    def _validate_date_range(self):
+        if not self.start_date or not self.end_date:
+            raise ValueError("Date range distribution requires start_date and end_date.")
+
+        start = self._parse_strict_date(self.start_date)
+        end = self._parse_strict_date(self.end_date)
+
+        if start > end:
+            raise ValueError("Date range start_date cannot be after end_date.")
 
     @staticmethod
     def _parse_strict_date(value: str):
@@ -132,6 +139,20 @@ class ColumnSchema(BaseModel):
 
     @model_validator(mode="after")
     def validate_column_config(self):
+        self._validate_name()
+
+        normalized_type = self.type.lower()
+        self._validate_type_supported(normalized_type)
+        self._validate_length_constraints_allowed(normalized_type)
+        self._validate_numeric_range()
+        self._validate_length_range()
+        self._validate_category(normalized_type)
+        self._validate_id(normalized_type)
+        self._validate_regex(normalized_type)
+
+        return self
+
+    def _validate_name(self):
         if not self.name or not self.name.strip():
             raise ValueError("Column name cannot be empty.")
 
@@ -140,14 +161,14 @@ class ColumnSchema(BaseModel):
                 f"Column name '{self.name}' is reserved for system metadata and cannot be used."
             )
 
-        normalized_type = self.type.lower()
-
+    def _validate_type_supported(self, normalized_type):
         if normalized_type not in SUPPORTED_DATA_TYPES:
             raise ValueError(
                 f"Unsupported column type '{self.type}'. "
                 f"Supported types are: {sorted(SUPPORTED_DATA_TYPES)}"
             )
 
+    def _validate_length_constraints_allowed(self, normalized_type):
         if (
             self.min_length is not None or self.max_length is not None
         ) and normalized_type not in LENGTH_SUPPORTED_TYPES:
@@ -157,11 +178,13 @@ class ColumnSchema(BaseModel):
                 f"{sorted(LENGTH_SUPPORTED_TYPES)}"
             )
 
+    def _validate_numeric_range(self):
         if self.min is not None and self.max is not None and self.min > self.max:
             raise ValueError(
                 f"Column '{self.name}' has invalid numeric range: min cannot be greater than max."
             )
 
+    def _validate_length_range(self):
         if (
             self.min_length is not None
             and self.max_length is not None
@@ -171,33 +194,36 @@ class ColumnSchema(BaseModel):
                 f"Column '{self.name}' has invalid length range: min_length cannot be greater than max_length."
             )
 
-        if normalized_type == "category" and not self.values:
+    def _validate_category(self, normalized_type):
+        if normalized_type != "category":
+            return
+
+        if not self.values:
             raise ValueError(
                 f"Column '{self.name}' is category type and must have allowed values."
             )
 
-        if normalized_type == "category" and self.distribution:
-            if self.distribution.type.lower() == "weighted":
-                weight_keys = set(self.distribution.weights.keys()) if self.distribution.weights else set()
-                value_keys = set(str(value) for value in self.values)
-                missing_weights = value_keys - weight_keys
+        if self.distribution and self.distribution.type.lower() == "weighted":
+            weight_keys = set(self.distribution.weights.keys()) if self.distribution.weights else set()
+            value_keys = {str(value) for value in self.values}
+            missing_weights = value_keys - weight_keys
 
-                if missing_weights:
-                    raise ValueError(
-                        f"Column '{self.name}' has category values without weights: {sorted(missing_weights)}"
-                    )
+            if missing_weights:
+                raise ValueError(
+                    f"Column '{self.name}' has category values without weights: {sorted(missing_weights)}"
+                )
 
+    def _validate_id(self, normalized_type):
         if normalized_type == "id" and not self.prefix:
             raise ValueError(
                 f"Column '{self.name}' is id type and must have a prefix."
             )
 
+    def _validate_regex(self, normalized_type):
         if normalized_type == "regex" and not self.pattern:
             raise ValueError(
                 f"Column '{self.name}' is regex type and must have a pattern."
             )
-
-        return self
 
 
 class DatasetRequest(BaseModel):
