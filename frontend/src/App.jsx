@@ -49,17 +49,17 @@ const CASE_PERCENTAGE_FIELDS = [
   { key: "length_violation_case", label: "Length violation", description: "Text below/above allowed length" }
 ]
 
-const NUMERIC_TYPES = ["integer", "number", "decimal", "float", "currency_amount"]
-const LENGTH_TYPES = ["string", "long_text", "name", "first_name", "last_name", "address", "company", "job_title"]
-const DATE_TIME_TYPES = ["date", "datetime", "timestamp"]
-const BOOLEAN_TYPES = ["boolean"]
-
+const NUMERIC_TYPES = new Set(["integer", "number", "decimal", "float", "currency_amount"])
+const LENGTH_TYPES = new Set(["string", "long_text", "name", "first_name", "last_name", "address", "company", "job_title"])
+const DATE_TIME_TYPES = new Set(["date", "datetime", "timestamp"])
+const BOOLEAN_TYPES = new Set(["boolean"])
+const RESERVED_COLUMN_NAMES = new Set(["__case_type", "__case_labels", "__case_reasons"])
 function supportsNumericRange(type) {
-  return NUMERIC_TYPES.includes(type)
+  return NUMERIC_TYPES.has(type)
 }
 
 function supportsLengthRange(type) {
-  return LENGTH_TYPES.includes(type)
+  return LENGTH_TYPES.has(type)
 }
 
 function supportsCategoryValues(type) {
@@ -75,11 +75,11 @@ function supportsPattern(type) {
 }
 
 function supportsDateRange(type) {
-  return DATE_TIME_TYPES.includes(type)
+  return DATE_TIME_TYPES.has(type)
 }
 
 function supportsBooleanProbability(type) {
-  return BOOLEAN_TYPES.includes(type)
+  return BOOLEAN_TYPES.has(type)
 }
 
 function hasAdvancedFields(type) {
@@ -235,10 +235,8 @@ function App() {
   }
 
   function convertInferredColumnsToFrontendColumns(inferredColumns) {
-    const reservedColumns = ["__case_type", "__case_labels", "__case_reasons"]
-
     return inferredColumns
-      .filter((column) => !reservedColumns.includes(column.name))
+    .filter((column) => !RESERVED_COLUMN_NAMES.has(column.name))
       .map((column) => ({
         id: crypto.randomUUID(),
         name: column.name || "",
@@ -462,7 +460,7 @@ function App() {
 
       columnNames.add(normalizedName)
 
-      if (["__case_type", "__case_labels", "__case_reasons"].includes(column.name.trim())) {
+      if (RESERVED_COLUMN_NAMES.has(column.name.trim())) {
         return `${column.name} is reserved for system metadata.`
       }
 
