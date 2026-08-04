@@ -1,6 +1,8 @@
 import random
 import uuid
 import ipaddress
+import re
+import math
 from datetime import datetime, date, timedelta
 
 import numpy as np
@@ -25,6 +27,7 @@ def generate_numeric_value(column):
     if distribution_type == "uniform":
         low = distribution.min if distribution.min is not None else min_value
         high = distribution.max if distribution.max is not None else max_value
+
         return float(np.random.uniform(low, high))
 
     if distribution_type == "normal":
@@ -34,6 +37,7 @@ def generate_numeric_value(column):
         value = float(np.random.normal(mean, std))
         value = max(value, min_value)
         value = min(value, max_value)
+
         return value
 
     if distribution_type == "exponential":
@@ -42,9 +46,23 @@ def generate_numeric_value(column):
         value = float(np.random.exponential(scale))
         value = max(value, min_value)
         value = min(value, max_value)
+
         return value
 
     return float(np.random.uniform(min_value, max_value))
+
+
+def clamp_integer_to_bounds(int_value, column):
+    """Clamp a rounded integer to the declared numeric bounds.
+
+    Rounding a float can push a value just past a fractional bound
+    (e.g. round(1.55) == 2 for max=1.6). Integers must respect the
+    declared min/max, so we clamp using ceil(min) and floor(max)."""
+    if column.min is not None:
+        int_value = max(int_value, math.ceil(column.min))
+    if column.max is not None:
+        int_value = min(int_value, math.floor(column.max))
+    return int_value
 
 
 def generate_boolean_value(column):
@@ -70,7 +88,10 @@ def generate_category_value(column):
     distribution = column.distribution
 
     if distribution and distribution.type.lower() == "weighted" and distribution.weights:
-        weights = [distribution.weights.get(str(value), 0) for value in values]
+        weights = [
+            distribution.weights.get(str(value), 0)
+            for value in values
+        ]
 
         if sum(weights) > 0:
             return random.choices(values, weights=weights, k=1)[0]
@@ -98,10 +119,12 @@ def generate_date_value(column):
         if start and end and start <= end:
             days_between = (end - start).days
             random_days = random.randint(0, days_between)
+
             return str(start + timedelta(days=random_days))
 
     start_date = date.today() - timedelta(days=365 * 5)
     random_days = random.randint(0, 365 * 5)
+
     return str(start_date + timedelta(days=random_days))
 
 
@@ -148,6 +171,54 @@ def apply_string_length_rules(value, column):
     return value
 
 
+def extract_first_name_word(value, fallback):
+    text = str(value or "").replace(".", " ").replace("-", " ")
+    words = re.findall(r"[A-Za-z]+", text)
+
+    if words:
+        return words[0].title()
+
+    return fallback
+
+
+def extract_last_name_word(value, fallback):
+    text = str(value or "").replace(".", " ").replace("-", " ")
+    words = re.findall(r"[A-Za-z]+", text)
+
+    if words:
+        return words[-1].title()
+
+    return fallback
+
+
+def generate_single_word_first_name():
+    return extract_first_name_word(
+        fake.first_name(),
+        "Aarav"
+    )
+
+
+def generate_single_word_last_name():
+    return extract_last_name_word(
+        fake.last_name(),
+        "Sharma"
+    )
+
+
+def generate_full_name():
+    first_name = generate_single_word_first_name()
+    last_name = generate_single_word_last_name()
+
+    return f"{first_name} {last_name}"
+
+
+def generate_indian_phone_number():
+    start_digit = random.choice(["6", "7", "8", "9"])
+    remaining_digits = "".join(str(random.randint(0, 9)) for _ in range(9))
+
+    return f"+91{start_digit}{remaining_digits}"
+
+
 def generate_regex_value(column):
     try:
         return rstr.xeger(column.pattern)
@@ -167,7 +238,7 @@ def generate_normal_value(column, row_index):
 
     if column_type in ["integer", "number"]:
         value = generate_numeric_value(column)
-        return int(round(value))
+        return clamp_integer_to_bounds(int(round(value)), column)
 
     if column_type in ["decimal", "float"]:
         value = generate_numeric_value(column)
@@ -186,19 +257,22 @@ def generate_normal_value(column, row_index):
         return generate_category_value(column)
 
     if column_type == "name":
-        return fake.name()
+        value = generate_full_name()
+        return apply_string_length_rules(value, column)
 
     if column_type == "first_name":
-        return fake.first_name()
+        value = generate_single_word_first_name()
+        return apply_string_length_rules(value, column)
 
     if column_type == "last_name":
-        return fake.last_name()
+        value = generate_single_word_last_name()
+        return apply_string_length_rules(value, column)
 
     if column_type == "email":
         return fake.email()
 
     if column_type == "phone":
-        return fake.phone_number()
+        return generate_indian_phone_number()
 
     if column_type == "address":
         return fake.address().replace("\n", ", ")
@@ -210,7 +284,7 @@ def generate_normal_value(column, row_index):
         return fake.state()
 
     if column_type == "country":
-        return fake.country()
+        return "India"
 
     if column_type in ["postal_code", "zip"]:
         return fake.postcode()
@@ -222,7 +296,7 @@ def generate_normal_value(column, row_index):
         return fake.job()
 
     if column_type == "uuid":
-        return str(uuid.uuid4())
+        return str(uuid.UUID(int=random.getrandbits(128)))
 
     if column_type == "id":
         prefix = column.prefix or "ID"
@@ -235,11 +309,11 @@ def generate_normal_value(column, row_index):
         return str(ipaddress.IPv4Address(random.randint(0, 2**32 - 1)))
 
     if column_type == "currency_code":
-        return random.choice(["INR", "USD", "EUR", "GBP", "AED", "SGD"])
+        return "INR"
 
     if column_type == "currency_amount":
         value = generate_numeric_value(column)
-        return round(value, 2)
+        return round(abs(value), 2)
 
     if column_type == "long_text":
         value = fake.paragraph(nb_sentences=5)

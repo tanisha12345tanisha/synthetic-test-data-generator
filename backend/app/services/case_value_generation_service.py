@@ -24,7 +24,17 @@ def generate_range_violation_value(column):
     column_type = column.type.lower()
 
     if column_type not in ["integer", "number", "decimal", "float", "currency_amount"]:
-        return generate_invalid_case_value(column)
+        value, _ = generate_invalid_case_value(column)
+        
+        return value, build_reason(
+        
+            column,
+            
+            "range_violation_case",
+            
+            "range_not_applicable_used_invalid_value"
+            
+            )
 
     if column.max is not None:
         return column.max + 1, build_reason(
@@ -62,7 +72,12 @@ def generate_length_violation_value(column):
     ]
 
     if column_type not in text_types:
-        return generate_invalid_case_value(column)
+        value, _ = generate_invalid_case_value(column)
+        return value, build_reason(
+            column,
+            "length_violation_case",
+            "length_not_applicable_used_invalid_value"
+        )
 
     if column.max_length is not None:
         return "A" * (column.max_length + 10), build_reason(
@@ -148,26 +163,29 @@ def generate_boundary_case_value(column):
     column_type = column.type.lower()
 
     if column_type in ["integer", "number", "decimal", "float", "currency_amount"]:
-        if column.min is not None:
-            return column.min, build_reason(
+            is_integer_type = column_type in ["integer", "number"]
+
+            if column.min is not None:
+                boundary_value = int(column.min) if is_integer_type else column.min
+                return boundary_value, build_reason(
+                    column,
+                    "boundary_case",
+                    "minimum_boundary_value"
+                )
+
+            if column.max is not None:
+                boundary_value = int(column.max) if is_integer_type else column.max
+                return boundary_value, build_reason(
+                    column,
+                    "boundary_case",
+                    "maximum_boundary_value"
+                )
+
+            return 0, build_reason(
                 column,
                 "boundary_case",
-                "minimum_boundary_value"
+                "zero_boundary_value"
             )
-
-        if column.max is not None:
-            return column.max, build_reason(
-                column,
-                "boundary_case",
-                "maximum_boundary_value"
-            )
-
-        return 0, build_reason(
-            column,
-            "boundary_case",
-            "zero_boundary_value"
-        )
-
     if column_type in ["string", "long_text"]:
         if column.max_length is not None:
             return "A" * column.max_length, build_reason(
@@ -229,7 +247,19 @@ def generate_corner_case_value(column):
         if column.max is not None:
             candidates.append(column.max - 1)
 
-        return random.choice(candidates), build_reason(
+        low = column.min if column.min is not None else float("-inf")
+        high = column.max if column.max is not None else float("inf")
+        valid_candidates = [x for x in candidates if low <= x <= high]
+
+        if not valid_candidates:
+            valid_candidates = [column.min if column.min is not None else 0]
+
+        chosen = random.choice(valid_candidates)
+
+        if column_type in ["integer", "number"]:
+            chosen = int(chosen)
+
+        return chosen, build_reason(
             column,
             "corner_case",
             "numeric_corner_value"
@@ -405,7 +435,12 @@ def generate_edge_case_value(column):
             "empty_category_value"
         )
 
-    return generate_invalid_case_value(column)
+    value, _ = generate_invalid_case_value(column)
+    return value, build_reason(
+        column,
+        "edge_case",
+        "edge_not_applicable_used_invalid_value"
+    )
 
 
 def generate_duplicate_case_value(column, unique_trackers):

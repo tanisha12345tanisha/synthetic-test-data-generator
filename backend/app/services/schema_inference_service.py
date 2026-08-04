@@ -1,6 +1,15 @@
 import re
 import pandas as pd
 
+def name_has_keyword(column_name_lower, *keywords):
+    """True if any keyword appears as a whole token in the column name.
+
+    Tokens are alphanumeric runs split on non-alnum boundaries, so
+    'order_date' matches 'date' but 'update_count' does NOT (avoids the
+    substring false-positives where 'date' hid inside 'update', 'name'
+    inside 'username', 'state' inside 'real_estate', etc.)."""
+    tokens = re.findall(r"[a-z0-9]+", column_name_lower)
+    return any(keyword in tokens for keyword in keywords)
 
 def infer_id_prefix(series):
     non_null_values = series.dropna().astype(str).tolist()
@@ -24,37 +33,37 @@ def infer_column_type(series, column_name):
     if non_null_series.empty:
         return "string"
 
-    if "email" in column_name_lower:
+    if name_has_keyword(column_name_lower, "email"):
         return "email"
 
-    if "phone" in column_name_lower or "mobile" in column_name_lower:
+    if name_has_keyword(column_name_lower, "phone", "mobile"):
         return "phone"
 
-    if column_name_lower.endswith("_id") or column_name_lower == "id" or "customer_id" in column_name_lower:
+    if column_name_lower.endswith("_id") or column_name_lower == "id" or name_has_keyword(column_name_lower, "id"):
         return "id"
 
-    if "date" in column_name_lower or "dob" in column_name_lower:
+    if name_has_keyword(column_name_lower, "date", "dob"):
         return "date"
 
-    if "amount" in column_name_lower or "price" in column_name_lower or "salary" in column_name_lower:
+    if name_has_keyword(column_name_lower, "amount", "price", "salary"):
         return "currency_amount"
 
-    if "city" in column_name_lower:
+    if name_has_keyword(column_name_lower, "city"):
         return "category"
 
-    if "state" in column_name_lower:
+    if name_has_keyword(column_name_lower, "state"):
         return "category"
 
-    if "country" in column_name_lower:
+    if name_has_keyword(column_name_lower, "country"):
         return "category"
 
-    if "status" in column_name_lower:
+    if name_has_keyword(column_name_lower, "status"):
         return "category"
 
-    if "type" in column_name_lower or "category" in column_name_lower:
+    if name_has_keyword(column_name_lower, "type", "category"):
         return "category"
 
-    if "name" in column_name_lower:
+    if name_has_keyword(column_name_lower, "name"):
         return "name"
 
     if pd.api.types.is_bool_dtype(series):

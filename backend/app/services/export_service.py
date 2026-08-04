@@ -1,12 +1,18 @@
 import io
 import json
 import pandas as pd
+import re
 
 from fastapi.responses import StreamingResponse
 
 
 def safe_file_name(dataset_name, extension):
     cleaned_name = dataset_name.strip().replace(" ", "_")
+
+    # Strip anything that isn't a safe filename character. This also removes
+    # CR/LF and other control characters, preventing HTTP header injection
+    # (response splitting) via the Content-Disposition header.
+    cleaned_name = re.sub(r"[^A-Za-z0-9._-]", "", cleaned_name)
 
     if not cleaned_name:
         cleaned_name = "synthetic_dataset"

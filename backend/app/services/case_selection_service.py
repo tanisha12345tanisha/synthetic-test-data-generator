@@ -52,4 +52,4 @@ def get_case_labels(case_type):
     if case_type == "length_violation_case":
         return ["length_violation_case", "invalid_case"]
 
-    return ["mixed_case"]
+    return [case_type]

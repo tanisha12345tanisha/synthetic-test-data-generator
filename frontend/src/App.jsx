@@ -123,7 +123,6 @@ function App() {
   const [datasetName, setDatasetName] = useState("")
   const [rowCount, setRowCount] = useState("")
   const [columns, setColumns] = useState([])
-
   const [caseDistribution, setCaseDistribution] = useState({
     normal: 70,
     edge_case: 10,
@@ -168,12 +167,7 @@ function App() {
   function updateColumn(columnId, field, value) {
     setColumns((previousColumns) =>
       previousColumns.map((column) =>
-        column.id === columnId
-          ? {
-              ...column,
-              [field]: value
-            }
-          : column
+        column.id === columnId ? { ...column, [field]: value } : column
       )
     )
   }
@@ -212,14 +206,11 @@ function App() {
   }
 
   function deleteColumn(columnId) {
-    setColumns((previousColumns) =>
-      previousColumns.filter((column) => column.id !== columnId)
-    )
+    setColumns((previousColumns) => previousColumns.filter((column) => column.id !== columnId))
   }
 
   function updateCaseDistribution(field, value) {
     const numericValue = Number(value)
-
     setCaseDistribution((previousDistribution) => ({
       ...previousDistribution,
       [field]: Number.isNaN(numericValue) ? 0 : numericValue
@@ -235,7 +226,6 @@ function App() {
       .filter(Boolean)
       .forEach((item) => {
         const [key, value] = item.split(":").map((part) => part.trim())
-
         if (key && value !== undefined && value !== "") {
           weights[key] = Number(value)
         }
@@ -245,11 +235,7 @@ function App() {
   }
 
   function convertInferredColumnsToFrontendColumns(inferredColumns) {
-    const reservedColumns = [
-      "__case_type",
-      "__case_labels",
-      "__case_reasons"
-    ]
+    const reservedColumns = ["__case_type", "__case_labels", "__case_reasons"]
 
     return inferredColumns
       .filter((column) => !reservedColumns.includes(column.name))
@@ -742,14 +728,174 @@ function App() {
     return null
   }
 
+    function formatRuleName(ruleName) {
+    return String(ruleName || "")
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ")
+  }
+
+  function getStatusClasses(status) {
+    if (status === "pass") {
+      return "bg-emerald-100 text-emerald-700"
+    }
+
+    if (status === "fail") {
+      return "bg-red-100 text-red-700"
+    }
+
+    return "bg-slate-200 text-slate-700"
+  }
+
+  function renderQualityReport() {
+    const report = generatedData?.quality_report
+    const summary = generatedData?.summary
+
+    if (!report || !summary) {
+      return null
+    }
+
+    const checks = Array.isArray(report.checks) ? report.checks : []
+
+    const totalRowsRepaired = checks.reduce(
+      (total, check) => total + Number(check.rows_repaired || 0),
+      0
+    )
+
+    return (
+      <section className="mt-6 rounded-3xl border border-emerald-200 bg-white p-6 shadow-xl shadow-emerald-100/60">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-emerald-600">
+              Data quality report
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-950">
+              Generated data quality checks
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Shows all quality rules applied after generation and how many rows were repaired.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-center">
+            <p className="text-2xl font-bold text-emerald-700">
+              {summary.data_quality_score ?? report.overall_score}
+            </p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+              Quality Score
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 md:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center">
+            <p className="text-xl font-bold text-slate-950">
+              {summary.data_quality_rules_checked ?? report.rules_checked}
+            </p>
+            <p className="text-xs text-slate-500">Rules checked</p>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-center">
+            <p className="text-xl font-bold text-emerald-700">
+              {summary.data_quality_rules_passed ?? report.rules_passed}
+            </p>
+            <p className="text-xs text-emerald-700">Rules passed</p>
+          </div>
+
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-center">
+            <p className="text-xl font-bold text-red-700">
+              {summary.data_quality_rules_failed ?? report.rules_failed}
+            </p>
+            <p className="text-xs text-red-700">Rules failed</p>
+          </div>
+
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4 text-center">
+            <p className="text-xl font-bold text-blue-700">
+              {totalRowsRepaired}
+            </p>
+            <p className="text-xs text-blue-700">Rows repaired</p>
+          </div>
+        </div>
+
+        <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
+          <div className="bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
+            Quality checks ({checks.length})
+          </div>
+
+          <div className="overflow-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-white">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Rule
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Fields
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Checked
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Repaired
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Failed
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {checks.map((check) => (
+                  <tr key={check.rule} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-semibold text-slate-800">
+                      {formatRuleName(check.rule)}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${getStatusClasses(check.status)}`}
+                      >
+                        {check.status}
+                      </span>
+                    </td>
+
+                    <td className="max-w-sm px-4 py-3 text-slate-600">
+                      {Array.isArray(check.fields_detected) &&
+                      check.fields_detected.length > 0
+                        ? check.fields_detected.join(", ")
+                        : "-"}
+                    </td>
+
+                    <td className="px-4 py-3 text-right text-slate-700">
+                      {check.rows_checked ?? 0}
+                    </td>
+
+                    <td className="px-4 py-3 text-right text-blue-700">
+                      {check.rows_repaired ?? 0}
+                    </td>
+
+                    <td className="px-4 py-3 text-right text-red-700">
+                      {check.failed_rows ?? 0}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   function renderColumnEditor() {
     return (
       <div className="space-y-4">
         {columns.length === 0 && (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-            <p className="text-sm font-medium text-slate-600">
-              No columns added yet.
-            </p>
+            <p className="text-sm font-medium text-slate-600">No columns added yet.</p>
             <button
               type="button"
               onClick={addColumn}
@@ -773,14 +919,9 @@ function App() {
             </div>
 
             {columns.map((column, index) => (
-              <div
-                key={column.id}
-                className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
-              >
+              <div key={column.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-900">
-                    Column {index + 1}
-                  </h3>
+                  <h3 className="font-semibold text-slate-900">Column {index + 1}</h3>
                   <button
                     type="button"
                     onClick={() => deleteColumn(column.id)}
@@ -792,32 +933,22 @@ function App() {
 
                 <div className="grid gap-4 md:grid-cols-3">
                   <label className="block">
-                    <span className="text-sm font-medium text-slate-700">
-                      Column name
-                    </span>
+                    <span className="text-sm font-medium text-slate-700">Column name</span>
                     <input
                       value={column.name}
-                      onChange={(event) =>
-                        updateColumn(column.id, "name", event.target.value)
-                      }
+                      onChange={(event) => updateColumn(column.id, "name", event.target.value)}
                       className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     />
                   </label>
 
                   <label className="block">
-                    <span className="text-sm font-medium text-slate-700">
-                      Data type
-                    </span>
+                    <span className="text-sm font-medium text-slate-700">Data type</span>
                     <select
                       value={column.type}
-                      onChange={(event) =>
-                        updateColumn(column.id, "type", event.target.value)
-                      }
+                      onChange={(event) => updateColumn(column.id, "type", event.target.value)}
                       className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     >
-                      <option value="" disabled>
-                        Select data type
-                      </option>
+                      <option value="" disabled>Select data type</option>
                       {DATA_TYPES.map((dataType) => (
                         <option key={dataType} value={dataType}>
                           {dataType}
@@ -850,171 +981,61 @@ function App() {
 
                 {column.type && hasAdvancedFields(column.type) && (
                   <div className="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Type-specific configuration
-                    </p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Type-specific configuration</p>
 
                     {supportsNumericRange(column.type) && (
                       <div className="grid gap-4 md:grid-cols-3">
-                        <input
-                          value={column.min}
-                          onChange={(event) =>
-                            updateColumn(column.id, "min", event.target.value)
-                          }
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                          placeholder="Min value"
-                        />
-
-                        <input
-                          value={column.max}
-                          onChange={(event) =>
-                            updateColumn(column.id, "max", event.target.value)
-                          }
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                          placeholder="Max value"
-                        />
-
-                        <select
-                          value={column.distribution_type}
-                          onChange={(event) =>
-                            updateColumn(column.id, "distribution_type", event.target.value)
-                          }
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                        >
+                        <input value={column.min} onChange={(event) => updateColumn(column.id, "min", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Min value" />
+                        <input value={column.max} onChange={(event) => updateColumn(column.id, "max", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Max value" />
+                        <select value={column.distribution_type} onChange={(event) => updateColumn(column.id, "distribution_type", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
                           <option value="">No distribution</option>
                           <option value="uniform">Uniform</option>
                           <option value="normal">Normal</option>
                           <option value="exponential">Exponential</option>
                         </select>
-
                         {column.distribution_type === "normal" && (
                           <>
-                            <input
-                              value={column.mean}
-                              onChange={(event) =>
-                                updateColumn(column.id, "mean", event.target.value)
-                              }
-                              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                              placeholder="Mean"
-                            />
-                            <input
-                              value={column.std}
-                              onChange={(event) =>
-                                updateColumn(column.id, "std", event.target.value)
-                              }
-                              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                              placeholder="Std deviation"
-                            />
+                            <input value={column.mean} onChange={(event) => updateColumn(column.id, "mean", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Mean" />
+                            <input value={column.std} onChange={(event) => updateColumn(column.id, "std", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Std deviation" />
                           </>
                         )}
-
                         {column.distribution_type === "exponential" && (
-                          <input
-                            value={column.mean}
-                            onChange={(event) =>
-                              updateColumn(column.id, "mean", event.target.value)
-                            }
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                            placeholder="Mean / scale"
-                          />
+                          <input value={column.mean} onChange={(event) => updateColumn(column.id, "mean", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Mean / scale" />
                         )}
                       </div>
                     )}
 
                     {supportsLengthRange(column.type) && (
                       <div className="grid gap-4 md:grid-cols-2">
-                        <input
-                          value={column.min_length}
-                          onChange={(event) =>
-                            updateColumn(column.id, "min_length", event.target.value)
-                          }
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                          placeholder="Min length"
-                        />
-                        <input
-                          value={column.max_length}
-                          onChange={(event) =>
-                            updateColumn(column.id, "max_length", event.target.value)
-                          }
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                          placeholder="Max length"
-                        />
+                        <input value={column.min_length} onChange={(event) => updateColumn(column.id, "min_length", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Min length" />
+                        <input value={column.max_length} onChange={(event) => updateColumn(column.id, "max_length", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Max length" />
                       </div>
                     )}
 
                     {supportsBooleanProbability(column.type) && (
-                      <input
-                        value={column.true_probability}
-                        onChange={(event) =>
-                          updateColumn(column.id, "true_probability", event.target.value)
-                        }
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                        placeholder="True probability % e.g. 80"
-                      />
+                      <input value={column.true_probability} onChange={(event) => updateColumn(column.id, "true_probability", event.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="True probability % e.g. 80" />
                     )}
 
                     {supportsDateRange(column.type) && (
                       <div className="grid gap-4 md:grid-cols-2">
-                        <input
-                          type="date"
-                          value={column.start_date}
-                          onChange={(event) =>
-                            updateColumn(column.id, "start_date", event.target.value)
-                          }
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                        />
-                        <input
-                          type="date"
-                          value={column.end_date}
-                          onChange={(event) =>
-                            updateColumn(column.id, "end_date", event.target.value)
-                          }
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                        />
+                        <input type="date" value={column.start_date} onChange={(event) => updateColumn(column.id, "start_date", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+                        <input type="date" value={column.end_date} onChange={(event) => updateColumn(column.id, "end_date", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
                       </div>
                     )}
 
                     {supportsCategoryValues(column.type) && (
                       <div className="grid gap-4 md:grid-cols-2">
-                        <input
-                          value={column.values}
-                          onChange={(event) =>
-                            updateColumn(column.id, "values", event.target.value)
-                          }
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                          placeholder="Values: Pune,Mumbai,Bengaluru"
-                        />
-                        <input
-                          value={column.weights}
-                          onChange={(event) =>
-                            updateColumn(column.id, "weights", event.target.value)
-                          }
-                          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                          placeholder="Weights: Pune:70,Mumbai:30"
-                        />
+                        <input value={column.values} onChange={(event) => updateColumn(column.id, "values", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Values: Pune,Mumbai,Bengaluru" />
+                        <input value={column.weights} onChange={(event) => updateColumn(column.id, "weights", event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Weights: Pune:70,Mumbai:30" />
                       </div>
                     )}
 
                     {supportsPrefix(column.type) && (
-                      <input
-                        value={column.prefix}
-                        onChange={(event) =>
-                          updateColumn(column.id, "prefix", event.target.value)
-                        }
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                        placeholder="Prefix e.g. CUST"
-                      />
+                      <input value={column.prefix} onChange={(event) => updateColumn(column.id, "prefix", event.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Prefix e.g. CUST" />
                     )}
 
                     {supportsPattern(column.type) && (
-                      <input
-                        value={column.pattern}
-                        onChange={(event) =>
-                          updateColumn(column.id, "pattern", event.target.value)
-                        }
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                        placeholder="Regex pattern"
-                      />
+                      <input value={column.pattern} onChange={(event) => updateColumn(column.id, "pattern", event.target.value)} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="Regex pattern" />
                     )}
                   </div>
                 )}
@@ -1037,50 +1058,26 @@ function App() {
       {!isSchemaReady && (
         <section className="mx-auto max-w-6xl px-6 py-12">
           <div className="mb-8 text-center">
-            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
-              Start generating test data
-            </p>
-            <h2 className="mt-3 text-4xl font-bold tracking-tight text-slate-950">
-              Choose how to create your schema
-            </h2>
+            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">Start generating test data</p>
+            <h2 className="mt-3 text-4xl font-bold tracking-tight text-slate-950">Choose how to create your schema</h2>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
               Upload a CSV to infer schema automatically or create a custom schema manually. Generated output remains synthetic-only.
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <button
-              type="button"
-              onClick={openUploadModal}
-              className="group rounded-3xl border border-slate-200 bg-white p-8 text-left shadow-xl shadow-slate-200/60 transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-2xl"
-            >
-              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-xl font-bold text-blue-700">
-                CSV
-              </div>
+            <button type="button" onClick={openUploadModal} className="group rounded-3xl border border-slate-200 bg-white p-8 text-left shadow-xl shadow-slate-200/60 transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-2xl">
+              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-xl font-bold text-blue-700">CSV</div>
               <h3 className="text-2xl font-bold text-slate-950">Upload CSV</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Infer column names, data types, ranges, categories, and date ranges from a sample CSV.
-              </p>
-              <div className="mt-6 text-sm font-semibold text-blue-600 group-hover:text-blue-700">
-                Upload and infer schema
-              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-600">Infer column names, data types, ranges, categories, and date ranges from a sample CSV.</p>
+              <div className="mt-6 text-sm font-semibold text-blue-600 group-hover:text-blue-700">Upload and infer schema</div>
             </button>
 
-            <button
-              type="button"
-              onClick={openManualSchemaModal}
-              className="group rounded-3xl border border-slate-200 bg-white p-8 text-left shadow-xl shadow-slate-200/60 transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-2xl"
-            >
-              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-xl font-bold text-emerald-700">
-                NEW
-              </div>
+            <button type="button" onClick={openManualSchemaModal} className="group rounded-3xl border border-slate-200 bg-white p-8 text-left shadow-xl shadow-slate-200/60 transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-2xl">
+              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-xl font-bold text-emerald-700">NEW</div>
               <h3 className="text-2xl font-bold text-slate-950">Create Schema</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Build a fully custom schema by adding columns, choosing data types, and setting constraints.
-              </p>
-              <div className="mt-6 text-sm font-semibold text-blue-600 group-hover:text-blue-700">
-                Build schema manually
-              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-600">Build a fully custom schema by adding columns, choosing data types, and setting constraints.</p>
+              <div className="mt-6 text-sm font-semibold text-blue-600 group-hover:text-blue-700">Build schema manually</div>
             </button>
           </div>
         </section>
@@ -1094,47 +1091,25 @@ function App() {
                 <div>
                   <p className="text-sm font-semibold text-blue-600">Dataset setup</p>
                   <h2 className="mt-2 text-2xl font-bold">Review schema before case configuration</h2>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Schema is visible first. You can edit it any time before generation.
-                  </p>
+                  <p className="mt-2 text-sm text-slate-600">Schema is visible first. You can edit it any time before generation.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={openManualSchemaModal}
-                  className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-                >
-                  Edit Schema
-                </button>
+                <button type="button" onClick={openManualSchemaModal} className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">Edit Schema</button>
               </div>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-sm font-medium text-slate-700">Dataset name</span>
-                  <input
-                    value={datasetName}
-                    onChange={(event) => setDatasetName(event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                  />
+                  <input value={datasetName} onChange={(event) => setDatasetName(event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
                 </label>
-
                 <label className="block">
                   <span className="text-sm font-medium text-slate-700">Row count</span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10000"
-                    value={rowCount}
-                    onChange={(event) => setRowCount(event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                  />
+                  <input type="number" min="1" max="10000" value={rowCount} onChange={(event) => setRowCount(event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
                   <p className="mt-1 text-xs text-slate-500">Maximum allowed: 10,000 rows</p>
                 </label>
               </div>
 
               <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
-                <div className="bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
-                  Schema columns ({columns.length})
-                </div>
+                <div className="bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">Schema columns ({columns.length})</div>
                 <div className="max-h-80 overflow-auto">
                   <table className="min-w-full divide-y divide-slate-200 text-sm">
                     <thead className="sticky top-0 bg-white">
@@ -1163,9 +1138,7 @@ function App() {
 
               <details className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <summary className="cursor-pointer text-sm font-semibold text-slate-700">View request JSON</summary>
-                <pre className="mt-4 max-h-96 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-                  {JSON.stringify(schemaPreview, null, 2)}
-                </pre>
+                <pre className="mt-4 max-h-96 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">{JSON.stringify(schemaPreview, null, 2)}</pre>
               </details>
             </section>
 
@@ -1174,19 +1147,9 @@ function App() {
                 <div>
                   <p className="text-sm font-semibold text-blue-600">Case configuration</p>
                   <h2 className="mt-2 text-2xl font-bold text-slate-950">Configure test coverage percentages</h2>
-                  <p className="mt-2 text-sm text-slate-600">
-                    These percentages control how normal, edge, invalid, duplicate, null, and violation rows are mixed into the dataset.
-                  </p>
+                  <p className="mt-2 text-sm text-slate-600">These percentages control how normal, edge, invalid, duplicate, null, and violation rows are mixed into the dataset.</p>
                 </div>
-                <div
-                  className={`rounded-2xl px-4 py-3 text-sm font-bold ${
-                    isCaseDistributionValid
-                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border border-red-200 bg-red-50 text-red-700"
-                  }`}
-                >
-                  Total: {caseDistributionTotal}%
-                </div>
+                <div className={`rounded-2xl px-4 py-3 text-sm font-bold ${isCaseDistributionValid ? "border border-emerald-200 bg-emerald-50 text-emerald-700" : "border border-red-200 bg-red-50 text-red-700"}`}>Total: {caseDistributionTotal}%</div>
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -1197,44 +1160,20 @@ function App() {
                         <span className="text-sm font-semibold text-slate-900">{field.label}</span>
                         <p className="mt-1 text-xs text-slate-500">{field.description}</p>
                       </div>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={caseDistribution[field.key]}
-                        onChange={(event) => updateCaseDistribution(field.key, event.target.value)}
-                        className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2 text-right text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                      />
+                      <input type="number" min="0" max="100" value={caseDistribution[field.key]} onChange={(event) => updateCaseDistribution(field.key, event.target.value)} className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2 text-right text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
                     </div>
                   </label>
                 ))}
               </div>
 
-              {!isCaseDistributionValid && (
-                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                  Case percentages must total exactly 100 before generating data.
-                </div>
-              )}
+              {!isCaseDistributionValid && <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">Case percentages must total exactly 100 before generating data.</div>}
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <div>
                   <h3 className="text-lg font-bold text-slate-950">Ready to generate?</h3>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Generate synthetic rows using the current schema and case configuration.
-                  </p>
+                  <p className="mt-1 text-sm text-slate-600">Generate synthetic rows using the current schema and case configuration.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleGenerateDataset}
-                  disabled={!isCaseDistributionValid || isGenerating}
-                  className={`rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-lg transition ${
-                    !isCaseDistributionValid || isGenerating
-                      ? "cursor-not-allowed bg-slate-400 shadow-none"
-                      : "bg-blue-600 shadow-blue-200 hover:bg-blue-700"
-                  }`}
-                >
-                  {isGenerating ? "Generating..." : "Generate Dataset"}
-                </button>
+                <button type="button" onClick={handleGenerateDataset} disabled={!isCaseDistributionValid || isGenerating} className={`rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-lg transition ${!isCaseDistributionValid || isGenerating ? "cursor-not-allowed bg-slate-400 shadow-none" : "bg-blue-600 shadow-blue-200 hover:bg-blue-700"}`}>{isGenerating ? "Generating..." : "Generate Dataset"}</button>
               </div>
 
               <div className="mt-5">{renderMessage()}</div>
@@ -1242,89 +1181,53 @@ function App() {
           </div>
 
           {generatedData && (
-            <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-blue-600">Generated dataset</p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-950">Preview first 100 rows</h2>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Backend generated {generatedData.summary.total_rows} rows. Preview is scrollable horizontally and vertically.
-                  </p>
-                </div>
+            <>
+              <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-blue-600">Generated dataset</p>
+                    <h2 className="mt-2 text-2xl font-bold text-slate-950">Preview first 100 rows</h2>
+                    <p className="mt-2 text-sm text-slate-600">Backend generated {generatedData.summary.total_rows} rows. Preview is scrollable horizontally and vertically.</p>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-center">
-                    <p className="text-lg font-bold">{generatedData.summary.total_rows}</p>
-                    <p className="text-xs text-slate-500">Rows</p>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3 text-center"><p className="text-lg font-bold">{generatedData.summary.total_rows}</p><p className="text-xs text-slate-500">Rows</p></div>
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3 text-center"><p className="text-lg font-bold">{generatedData.summary.normal_rows}</p><p className="text-xs text-slate-500">Normal</p></div>
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3 text-center"><p className="text-lg font-bold">{generatedData.summary.invalid_case_rows}</p><p className="text-xs text-slate-500">Invalid</p></div>
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3 text-center"><p className="text-lg font-bold">{generatedData.summary.edge_case_rows}</p><p className="text-xs text-slate-500">Edge</p></div>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-center">
-                    <p className="text-lg font-bold">{generatedData.summary.normal_rows}</p>
-                    <p className="text-xs text-slate-500">Normal</p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-center">
-                    <p className="text-lg font-bold">{generatedData.summary.invalid_case_rows}</p>
-                    <p className="text-xs text-slate-500">Invalid</p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-center">
-                    <p className="text-lg font-bold">{generatedData.summary.edge_case_rows}</p>
-                    <p className="text-xs text-slate-500">Edge</p>
+
+                  <div className="flex flex-wrap gap-3">
+                    <button type="button" onClick={() => handleExport("csv")} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-300 transition hover:bg-slate-800">Download CSV</button>
+                    <button type="button" onClick={() => handleExport("json")} className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">Download JSON</button>
+                    <button type="button" onClick={() => handleExport("pipe")} className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">Download Pipe</button>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleExport("csv")}
-                    className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-300 transition hover:bg-slate-800"
-                  >
-                    Download CSV
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleExport("json")}
-                    className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-                  >
-                    Download JSON
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleExport("pipe")}
-                    className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-                  >
-                    Download Pipe
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-6 max-h-[560px] overflow-auto rounded-2xl border border-slate-200">
-                <table className="min-w-max divide-y divide-slate-200 text-sm">
-                  <thead className="sticky top-0 bg-slate-50">
-                    <tr>
-                      {Object.keys(generatedData.generated_rows[0] || {}).map((columnName) => (
-                        <th key={columnName} className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                          {columnName}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {generatedData.generated_rows.slice(0, 100).map((row, rowIndex) => (
-                      <tr key={rowIndex} className="hover:bg-slate-50">
-                        {Object.entries(row).map(([key, value]) => (
-                          <td
-                            key={key}
-                            className="max-w-xs truncate whitespace-nowrap px-4 py-3 text-slate-700"
-                            title={typeof value === "object" ? JSON.stringify(value) : String(value)}
-                          >
-                            {typeof value === "object" ? JSON.stringify(value) : String(value)}
-                          </td>
+                <div className="mt-6 max-h-[560px] overflow-auto rounded-2xl border border-slate-200">
+                  <table className="min-w-max divide-y divide-slate-200 text-sm">
+                    <thead className="sticky top-0 bg-slate-50">
+                      <tr>
+                        {Object.keys(generatedData.generated_rows[0] || {}).map((columnName) => (
+                          <th key={columnName} className="whitespace-nowrap px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">{columnName}</th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {generatedData.generated_rows.slice(0, 100).map((row, rowIndex) => (
+                        <tr key={rowIndex} className="hover:bg-slate-50">
+                          {Object.entries(row).map(([key, value]) => (
+                            <td key={key} className="max-w-xs truncate whitespace-nowrap px-4 py-3 text-slate-700" title={typeof value === "object" ? JSON.stringify(value) : String(value)}>{typeof value === "object" ? JSON.stringify(value) : String(value)}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              {renderQualityReport()}
+            </>
           )}
         </section>
       )}
@@ -1336,49 +1239,20 @@ function App() {
               <div>
                 <p className="text-sm font-semibold text-blue-600">Upload CSV</p>
                 <h3 className="mt-2 text-2xl font-bold text-slate-950">Infer schema from CSV</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  The CSV is used only for schema inference. Uploaded values are not copied into generated output.
-                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">The CSV is used only for schema inference. Uploaded values are not copied into generated output.</p>
               </div>
-              <button type="button" onClick={closeModal} className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-600 hover:bg-slate-200">
-                ×
-              </button>
+              <button type="button" onClick={closeModal} className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-600 hover:bg-slate-200">x</button>
             </div>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Dataset name</span>
-                <input
-                  value={datasetName}
-                  onChange={(event) => setDatasetName(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Row count</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="10000"
-                  value={rowCount}
-                  onChange={(event) => setRowCount(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                />
-              </label>
+              <label className="block"><span className="text-sm font-medium text-slate-700">Dataset name</span><input value={datasetName} onChange={(event) => setDatasetName(event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></label>
+              <label className="block"><span className="text-sm font-medium text-slate-700">Row count</span><input type="number" min="1" max="10000" value={rowCount} onChange={(event) => setRowCount(event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></label>
             </div>
 
             <label className="mt-6 flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-blue-200 bg-blue-50/60 px-6 py-10 text-center transition hover:border-blue-400">
-              <span className="text-sm font-semibold text-blue-700">
-                {isInferringSchema ? "Inferring schema..." : "Choose CSV file"}
-              </span>
+              <span className="text-sm font-semibold text-blue-700">{isInferringSchema ? "Inferring schema..." : "Choose CSV file"}</span>
               <span className="mt-1 text-xs text-slate-500">Only .csv files are supported</span>
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleSchemaInference}
-                disabled={isInferringSchema}
-                className="hidden"
-              />
+              <input type="file" accept=".csv" onChange={handleSchemaInference} disabled={isInferringSchema} className="hidden" />
             </label>
           </div>
         </div>
@@ -1393,50 +1267,19 @@ function App() {
                 <h3 className="mt-2 text-2xl font-bold text-slate-950">Build schema manually</h3>
                 <p className="mt-2 text-sm text-slate-600">Add columns, choose data types, and click Create Schema.</p>
               </div>
-              <button type="button" onClick={closeModal} className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-600 hover:bg-slate-200">
-                ×
-              </button>
+              <button type="button" onClick={closeModal} className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-600 hover:bg-slate-200">x</button>
             </div>
 
             <div className="mb-6 grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Dataset name</span>
-                <input
-                  value={datasetName}
-                  onChange={(event) => setDatasetName(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                />
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Row count</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="10000"
-                  value={rowCount}
-                  onChange={(event) => setRowCount(event.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                />
-              </label>
+              <label className="block"><span className="text-sm font-medium text-slate-700">Dataset name</span><input value={datasetName} onChange={(event) => setDatasetName(event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></label>
+              <label className="block"><span className="text-sm font-medium text-slate-700">Row count</span><input type="number" min="1" max="10000" value={rowCount} onChange={(event) => setRowCount(event.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></label>
             </div>
 
             {renderColumnEditor()}
 
             <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-5">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleCreateSchema}
-                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Create Schema
-              </button>
+              <button type="button" onClick={closeModal} className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Cancel</button>
+              <button type="button" onClick={handleCreateSchema} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Create Schema</button>
             </div>
           </div>
         </div>

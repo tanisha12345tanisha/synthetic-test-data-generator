@@ -5,9 +5,11 @@ from faker import Faker
 from app.services.normal_generation_service import generate_normal_value
 from app.services.case_selection_service import select_case_type, get_case_labels
 from app.services.case_value_generation_service import generate_case_value
+from app.services.data_quality_service import apply_data_quality_rules
 
 
 fake = Faker("en_IN")
+
 
 def build_final_case_labels(base_labels, case_reasons):
     final_labels = list(base_labels)
@@ -190,14 +192,12 @@ def calculate_case_counts(rows):
     }
 
     for row in rows:
-        labels = row.get("__case_labels", [])
+        case_type = row.get("__case_type")
 
-        for label in labels:
-            if label in case_counts:
-                case_counts[label] += 1
+        if case_type in case_counts:
+            case_counts[case_type] += 1
 
     return case_counts
-
 
 def generate_normal_dataset(request):
     initialize_seed(request.seed)
@@ -254,6 +254,11 @@ def generate_normal_dataset(request):
 
         rows.append(row)
 
+    rows, quality_report = apply_data_quality_rules(
+        rows=rows,
+        columns=request.columns
+    )
+
     case_counts = calculate_case_counts(rows)
 
     summary = {
@@ -273,12 +278,18 @@ def generate_normal_dataset(request):
         "null_case_rows": case_counts["null_case"],
         "format_violation_case_rows": case_counts["format_violation_case"],
         "range_violation_case_rows": case_counts["range_violation_case"],
-        "length_violation_case_rows": case_counts["length_violation_case"]
+        "length_violation_case_rows": case_counts["length_violation_case"],
+
+        "data_quality_score": quality_report["overall_score"],
+        "data_quality_rules_checked": quality_report["rules_checked"],
+        "data_quality_rules_passed": quality_report["rules_passed"],
+        "data_quality_rules_failed": quality_report["rules_failed"]
     }
 
     return {
         "dataset_name": request.dataset_name,
         "row_count": request.row_count,
         "generated_rows": rows,
-        "summary": summary
+        "summary": summary,
+        "quality_report": quality_report
     }

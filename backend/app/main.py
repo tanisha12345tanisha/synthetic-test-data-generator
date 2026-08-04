@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from app.models.schema_models import DatasetRequest, DatasetResponse
+
+from app.models.schema_models import DatasetRequest
 from app.services.dataset_generation_service import generate_normal_dataset
 from app.services.export_service import (
     export_dataset_as_csv,
@@ -8,9 +9,6 @@ from app.services.export_service import (
     export_dataset_as_pipe
 )
 from app.services.schema_inference_service import infer_schema_from_csv
-
-
-
 
 
 app = FastAPI(
@@ -69,10 +67,10 @@ def validate_schema(request: DatasetRequest):
         "synthetic_only": True
     }
 
-@app.post("/generate", response_model=DatasetResponse)
+
+@app.post("/generate")
 def generate_dataset(request: DatasetRequest):
     return generate_normal_dataset(request)
-
 
 
 @app.post("/export/json")
@@ -86,10 +84,12 @@ def export_csv(request: DatasetRequest):
     dataset_result = generate_normal_dataset(request)
     return export_dataset_as_csv(dataset_result)
 
+
 @app.post("/export/pipe")
 def export_pipe(request: DatasetRequest):
     dataset_result = generate_normal_dataset(request)
     return export_dataset_as_pipe(dataset_result)
+
 
 @app.post("/infer-schema")
 def infer_schema(file: UploadFile = File(...)):

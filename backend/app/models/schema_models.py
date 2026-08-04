@@ -7,22 +7,21 @@ from app.utils.constants import (
 )
 from datetime import datetime
 
+
+LENGTH_SUPPORTED_TYPES = {"string", "name", "first_name", "last_name", "long_text"}
+
+
 class DistributionConfig(BaseModel):
     type: str = Field(
         default="uniform",
         description="Distribution type: uniform, normal, exponential, weighted, boolean_probability, date_range"
     )
-
     min: Optional[float] = None
     max: Optional[float] = None
-
     mean: Optional[float] = None
     std: Optional[float] = None
-
     weights: Optional[Dict[str, float]] = None
-
     true_probability: Optional[float] = Field(default=None, ge=0, le=100)
-
     start_date: Optional[str] = None
     end_date: Optional[str] = None
 
@@ -47,6 +46,9 @@ class DistributionConfig(BaseModel):
             if not self.weights:
                 raise ValueError("Weighted distribution requires weights.")
 
+            if any(weight < 0 for weight in self.weights.values()):
+                raise ValueError("Weighted distribution weights cannot be negative.")
+
             if sum(self.weights.values()) <= 0:
                 raise ValueError("Weighted distribution weights must sum to more than 0.")
 
@@ -54,16 +56,28 @@ class DistributionConfig(BaseModel):
             if not self.start_date or not self.end_date:
                 raise ValueError("Date range distribution requires start_date and end_date.")
 
-            try:
-                start = datetime.strptime(self.start_date, "%Y-%m-%d").date()
-                end = datetime.strptime(self.end_date, "%Y-%m-%d").date()
-            except ValueError:
-                raise ValueError("Date range must use YYYY-MM-DD format.")
+            start = self._parse_strict_date(self.start_date)
+            end = self._parse_strict_date(self.end_date)
 
             if start > end:
                 raise ValueError("Date range start_date cannot be after end_date.")
 
         return self
+
+    @staticmethod
+    def _parse_strict_date(value: str):
+        """Parse a date that must be EXACTLY YYYY-MM-DD (4-digit year,
+        zero-padded month and day). strptime alone is too lenient (it accepts
+        '2020-1-1'), so we enforce the shape before parsing."""
+        import re
+
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            raise ValueError("Date range must use YYYY-MM-DD format.")
+
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except ValueError:
+            raise ValueError("Date range must use YYYY-MM-DD format.")
 
 
 class CaseDistributionConfig(BaseModel):
@@ -104,27 +118,23 @@ class CaseDistributionConfig(BaseModel):
 class ColumnSchema(BaseModel):
     name: str
     type: str
-
     required: bool = True
     nullable: bool = False
     unique: bool = False
-
     min: Optional[float] = None
     max: Optional[float] = None
-
-    min_length: Optional[int] = None
-    max_length: Optional[int] = None
-
+    min_length: Optional[int] = Field(default=None, ge=0)
+    max_length: Optional[int] = Field(default=None, ge=0)
     values: Optional[List[Any]] = None
     prefix: Optional[str] = None
     pattern: Optional[str] = None
-
     distribution: Optional[DistributionConfig] = None
 
     @model_validator(mode="after")
     def validate_column_config(self):
         if not self.name or not self.name.strip():
             raise ValueError("Column name cannot be empty.")
+
         if self.name.strip() in METADATA_COLUMNS:
             raise ValueError(
                 f"Column name '{self.name}' is reserved for system metadata and cannot be used."
@@ -136,6 +146,15 @@ class ColumnSchema(BaseModel):
             raise ValueError(
                 f"Unsupported column type '{self.type}'. "
                 f"Supported types are: {sorted(SUPPORTED_DATA_TYPES)}"
+            )
+
+        if (
+            self.min_length is not None or self.max_length is not None
+        ) and normalized_type not in LENGTH_SUPPORTED_TYPES:
+            raise ValueError(
+                f"Column '{self.name}' of type '{self.type}' does not support length "
+                f"constraints. min_length/max_length are only valid for: "
+                f"{sorted(LENGTH_SUPPORTED_TYPES)}"
             )
 
         if self.min is not None and self.max is not None and self.min > self.max:
@@ -156,11 +175,11 @@ class ColumnSchema(BaseModel):
             raise ValueError(
                 f"Column '{self.name}' is category type and must have allowed values."
             )
+
         if normalized_type == "category" and self.distribution:
             if self.distribution.type.lower() == "weighted":
                 weight_keys = set(self.distribution.weights.keys()) if self.distribution.weights else set()
                 value_keys = set(str(value) for value in self.values)
-
                 missing_weights = value_keys - weight_keys
 
                 if missing_weights:
@@ -185,7 +204,6 @@ class DatasetRequest(BaseModel):
     dataset_name: str
     row_count: int = Field(ge=1, le=10000)
     seed: Optional[int] = None
-
     columns: List[ColumnSchema]
     case_distribution: CaseDistributionConfig = CaseDistributionConfig()
 
@@ -197,7 +215,10 @@ class DatasetRequest(BaseModel):
         if not self.columns:
             raise ValueError("At least one column is required.")
 
-        column_names = [column.name.strip().lower() for column in self.columns]
+        column_names = [
+            column.name.strip().lower()
+            for column in self.columns
+        ]
 
         if len(column_names) != len(set(column_names)):
             raise ValueError("Duplicate column names are not allowed.")
@@ -209,6 +230,23 @@ class CaseReason(BaseModel):
     column: str
     label: str
     reason: str
+
+
+class QualityCheck(BaseModel):
+    rule: str
+    status: str
+    fields_detected: Optional[List[str]] = None
+    rows_checked: int = 0
+    rows_repaired: int = 0
+    failed_rows: int = 0
+
+
+class QualityReport(BaseModel):
+    overall_score: float
+    rules_checked: int
+    rules_passed: int
+    rules_failed: int
+    checks: List[Dict[str, Any]]
 
 
 class DatasetSummary(BaseModel):
@@ -230,9 +268,15 @@ class DatasetSummary(BaseModel):
     range_violation_case_rows: int
     length_violation_case_rows: int
 
+    data_quality_score: Optional[float] = None
+    data_quality_rules_checked: Optional[int] = None
+    data_quality_rules_passed: Optional[int] = None
+    data_quality_rules_failed: Optional[int] = None
+
 
 class DatasetResponse(BaseModel):
     dataset_name: str
     row_count: int
     generated_rows: List[Dict[str, Any]]
     summary: DatasetSummary
+    quality_report: Optional[QualityReport] = None
