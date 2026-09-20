@@ -1,0 +1,1432 @@
+ 
+ 
+SYNTHETIC TEST DATA GENERATOR 
+
+Version 2 Detailed Requirements, Architecture, Acceptance Criteria, and AI Implementation Prompt 
+
+A complete, implementation-ready specification extending the stable Version 1 application 
+
+Prepared by 
+
+Tanisha Agrawal 
+
+Status 
+
+Requirements baseline for final review and approval 
+
+Target platform 
+
+Google Cloud Platform 
+
+Core principle 
+
+Synthetic-only, rule-based, LLM-free runtime 
+
+ 
+Document usage: This document is both a product requirements specification and a reusable prompt for an AI coding assistant. Any implementation must follow the locked decisions, preserve Version 1 behavior, and proceed feature by feature only after explicit approval. 
+
+ 
+
+1. Purpose and document authority 
+
+This document defines the complete Version 2 target for the Synthetic Test Data Generator. It consolidates the existing Version 1 baseline, the connected-tables proposal, and all decisions explicitly approved during scope definition. It is authoritative for requirements, architecture, security controls, data ownership, validation behavior, testing, deployment, and AI-assisted implementation. 
+
+Rules for using this document as an AI prompt 
+
+Never begin coding until the user explicitly approves the feature currently under discussion. 
+
+Implement one feature at a time. Identify affected files first, request the current file contents, and return complete updated files ready to copy and paste. 
+
+Preserve all existing Version 1 behavior and tests unless the approved requirement intentionally changes a contract. 
+
+Never weaken, delete, skip, or rewrite a strict test merely to make implementation pass. Fix the source behavior or document a genuine approved contract change. 
+
+Use no LLM, Ollama, external generative AI service, Kaggle dataset, downloaded dataset, or production data at runtime. 
+
+All generated data must be synthetic. Database input is metadata-only. CSV input remains schema-inference-only. 
+
+Maintain deterministic generation where the same normalized schema, configuration, relationships, and seed produce the same output. 
+
+When suggesting implementation changes, always name the file and function/class. Do not provide partial file fragments when the user requests complete files. 
+
+Requirement language 
+
+MUST and SHALL indicate mandatory behavior. SHOULD indicates a strong default that may change only through an approved decision. MAY indicates optional behavior. DEFERRED means explicitly excluded from Version 2. 
+
+2. Version 1 baseline to preserve 
+
+Version 1 is a schema-first React + Tailwind and FastAPI application for generating realistic, non-sensitive test datasets. It supports manual schema creation, CSV schema inference, normal and abnormal cases, preview, export, data-quality repair, and deterministic seeds. Version 2 must extend rather than destabilize this baseline. 
+
+Area 
+
+Baseline behavior that must remain 
+
+Input 
+
+Manual schema and CSV schema inference. 
+
+Generation 
+
+Normal, edge, corner, boundary, invalid, mixed, duplicate, null, format, range, and length violation cases. 
+
+Types 
+
+String, numeric, boolean, date/time, category, name/contact, location, company/job, UUID/ID, URL/IP, currency, long text, and regex. 
+
+Distributions 
+
+Uniform, normal, exponential, weighted categorical, boolean probability, and date range. 
+
+Audit metadata 
+
+__case_type, __case_labels, and __case_reasons remain system-reserved. 
+
+Exports 
+
+CSV, PSV, and JSON for single-table output. 
+
+Quality 
+
+Validation and repair for formats, consistency, duplicates, locations, names/email, age/DOB, status/boolean, and related rules. 
+
+Testing baseline 
+
+Existing backend tests remain regression guards; the recorded baseline is 573 passing tests and 91% statement coverage. 
+
+ 
+
+3. Approved scope classification 
+
+Must-have 
+
+Frontend redesign 
+
+Login, registration, and logout 
+
+PostgreSQL application database 
+
+User-owned saved datasets 
+
+Saved schema configurations 
+
+Basic schema versioning and restore 
+
+Multi-table generation 
+
+Referential-integrity validation 
+
+Manual and CSV multi-table setup 
+
+Metadata input connectors for PostgreSQL, MySQL, Microsoft SQL Server, and Oracle 
+
+Cross-column rules 
+
+Derived fields 
+
+Generation history 
+
+Quality and integrity reports 
+
+Schema JSON import/export 
+
+Configurable safety limits 
+
+Should-have 
+
+Dark mode 
+
+Background generation jobs 
+
+Admin role and basic audit log 
+
+Schema templates 
+
+Visual table-relationship editor 
+
+Advanced search and filtering 
+
+Email-based password reset 
+
+Could-have / not committed for initial delivery 
+
+Composite foreign keys 
+
+Admin-controlled or service-account API keys for pipeline integration 
+
+Detailed side-by-side schema comparison 
+
+Scheduled generations 
+
+Deferred beyond Version 2 
+
+Circular relationships 
+
+Self-referencing relationships 
+
+Production-row sampling 
+
+Collaborative live editing 
+
+Direct synthetic-data write-back to external databases 
+
+Advanced role and organization management 
+
+User-created API keys 
+
+4. Locked product decisions 
+
+# 
+
+Decision 
+
+Approved result 
+
+1 
+
+Generated output retention 
+
+Temporary retention. Files expire automatically; generation history remains. 
+
+2 
+
+Database input 
+
+Metadata only. No source rows are read or sampled. 
+
+3 
+
+Connectors 
+
+PostgreSQL, MySQL, Microsoft SQL Server, and Oracle. 
+
+4 
+
+Table limits 
+
+Configurable. Default 5; admin maximum up to 20. 
+
+5 
+
+Relationships 
+
+One-to-one, one-to-many, and many-to-many through explicit junction tables. 
+
+6 
+
+Versioning 
+
+Hybrid: draft autosave plus permanent versions at defined events. 
+
+7 
+
+Authentication 
+
+Email/password now; architecture prepared for company SSO later. 
+
+8 
+
+Roles 
+
+User and Admin. 
+
+9 
+
+Password reset 
+
+Enabled through email. 
+
+10 
+
+Sharing 
+
+Controlled sharing with Owner, Editor, and Viewer permissions. 
+
+11 
+
+Row limits 
+
+Per-table and total-dataset limits configured separately by Admin. 
+
+12 
+
+API keys 
+
+Users cannot create API keys in Version 2. 
+
+13 
+
+Templates 
+
+Included and administered through the Admin Portal. 
+
+14 
+
+Deployment 
+
+Google Cloud Platform. 
+
+ 
+
+5. Product personas and authorization model 
+
+User 
+
+Register, verify/use an email identity, log in, log out, reset password, and manage own profile. 
+
+Create single-table or connected-table datasets using manual, CSV, JSON schema import, template, or database metadata input. 
+
+Own datasets; edit schemas; create versions; generate data; view history/reports; download non-expired outputs. 
+
+Share datasets with registered users as Editor or Viewer. 
+
+Create session-only or securely retained database connection definitions subject to approved credential policy. 
+
+Admin 
+
+Activate or disable users. 
+
+Configure table limits, per-table row limit, total-dataset row limit, retention, job timeouts, and concurrency safeguards. 
+
+Create, edit, version, activate, and deactivate system templates. 
+
+Enable or disable connector types and view connector health without seeing stored secrets. 
+
+View system-level usage, generation failures, connection attempts, and audit events. 
+
+Admins do not automatically gain access to user database passwords or user-generated output contents. 
+
+Dataset-scoped roles 
+
+Role 
+
+View 
+
+Edit 
+
+Generate 
+
+Download 
+
+Share 
+
+Delete 
+
+Owner 
+
+Yes 
+
+Yes 
+
+Yes 
+
+Yes 
+
+Yes 
+
+Yes 
+
+Editor 
+
+Yes 
+
+Yes 
+
+Yes 
+
+Yes 
+
+No 
+
+No 
+
+Viewer 
+
+Yes 
+
+No 
+
+No 
+
+Yes 
+
+No 
+
+No 
+
+ 
+
+6. Detailed frontend and user experience requirements 
+
+Information architecture 
+
+Route / screen 
+
+Required content 
+
+/ 
+
+Public landing page, product purpose, synthetic-only statement, sign-in/register actions. 
+
+/login 
+
+Email, password, show/hide password, forgot-password link, safe errors. 
+
+/register 
+
+Name, email, password, confirmation, policy acknowledgement. 
+
+/forgot-password 
+
+Email request with non-enumerating response. 
+
+/reset-password 
+
+Token validation, password, confirmation, success/expired states. 
+
+/dashboard 
+
+Recent datasets, recent generations, summary cards, quick-create actions. 
+
+/datasets 
+
+Owned and shared datasets, filters, search, sort, pagination, status badges. 
+
+/datasets/new 
+
+Input-mode selection: Manual, CSV, Database, Template, JSON. 
+
+/datasets/:id 
+
+Overview, schema, relationships, rules, versions, generations, sharing. 
+
+/datasets/:id/builder 
+
+Single-table or connected-table step-by-step builder. 
+
+/generations/:id 
+
+Status, progress, counts, quality/integrity report, downloads. 
+
+/admin 
+
+Users, limits, templates, connectors, audits, system status. 
+
+/settings 
+
+Profile, password change, theme, account settings. 
+
+ 
+
+Design qualities 
+
+Professional SaaS-style dashboard with restrained enterprise visual language. 
+
+Responsive at desktop, tablet, and mobile breakpoints; core creation flow optimized for desktop. 
+
+Reusable design system for buttons, inputs, cards, tables, tabs, dialogs, badges, alerts, toasts, skeletons, empty states, and error states. 
+
+Light and dark themes with persisted user preference. 
+
+Keyboard-accessible navigation, visible focus states, semantic labels, sufficient contrast, and no color-only status communication. 
+
+No destructive action without a confirmation dialog naming the affected dataset or resource. 
+
+Long operations show progress/status; buttons prevent accidental duplicate submission. 
+
+All validation messages identify the exact table, column, relationship, or field requiring correction. 
+
+Creation wizard 
+
+Choose dataset type: Single Table or Connected Tables. 
+
+Choose input mode: Manual, CSV, Database, Template, or Schema JSON. 
+
+Define dataset basics and per-table row counts. 
+
+Define/edit tables and columns. 
+
+Define relationships for connected data. 
+
+Define cross-column and derived-field rules. 
+
+Configure distributions and case percentages. 
+
+Validate the entire configuration. 
+
+Review generated-data plan and effective admin limits. 
+
+Save draft, save version, or start generation. 
+
+View live generation status. 
+
+Preview, inspect reports, and download output. 
+
+7. Authentication, session, and email requirements 
+
+Registration 
+
+Required fields: display name, email, password, confirm password. 
+
+Normalize email for comparison and enforce uniqueness. 
+
+Never store plaintext passwords. Use a modern adaptive password hash. 
+
+Reject inactive/disabled accounts at login. 
+
+Use generic authentication errors that do not reveal whether an email exists. 
+
+Rate-limit registration and authentication endpoints. 
+
+Record security-relevant events without logging passwords, tokens, or reset links. 
+
+Session model 
+
+Short-lived access token and refresh-token workflow. 
+
+Refresh tokens are revocable and associated with user/session metadata. 
+
+Logout revokes the current refresh token. Password reset revokes all active sessions. 
+
+Protected frontend routes redirect unauthenticated users to login while preserving a safe return route. 
+
+Backend authorization is always enforced independently of frontend visibility. 
+
+Email password reset 
+
+Forgot-password requests return the same response for existing and non-existing accounts. 
+
+Generate long, cryptographically random, single-use reset tokens. Store only a secure token representation. 
+
+Tokens expire after a configurable period and become invalid immediately after use. 
+
+Rate-limit requests by relevant dimensions such as account and requester context. 
+
+Reset form requires new password and confirmation. 
+
+After reset, send a confirmation email and revoke existing sessions. 
+
+Email copy never includes a password. Email links use the configured trusted frontend origin. 
+
+Future SSO compatibility 
+
+User identity records must support one or more identity providers so future company SSO can be linked to the existing application user without changing dataset ownership. Email/password remains the approved Version 2 method. 
+
+8. PostgreSQL application data model 
+
+The application database stores identity, configuration, ownership, history, limits, and audit metadata. It does not store generated row payloads. Generated files are retained in object storage for a limited period. 
+
+Entity 
+
+Minimum fields / responsibilities 
+
+users 
+
+id UUID, email normalized/unique, display_name, password_hash, role, status, created_at, updated_at, last_login_at. 
+
+refresh_sessions 
+
+id, user_id, token_hash or identifier, expires_at, revoked_at, created_at, client metadata as permitted. 
+
+password_reset_tokens 
+
+id, user_id, token_hash, expires_at, used_at, created_at. 
+
+datasets 
+
+id, owner_id, name, description, dataset_type, input_mode, status, current_draft_revision, timestamps. 
+
+dataset_shares 
+
+dataset_id, user_id, permission viewer/editor, granted_by, timestamps; unique per dataset/user. 
+
+schema_versions 
+
+id, dataset_id, version_number, trigger, immutable schema document, created_by, created_at, restored_from_version_id. 
+
+tables 
+
+id, dataset_id/draft, name, display_order, requested_rows, metadata. 
+
+columns 
+
+id, table_id, name, type, constraints, distribution, required/nullable/unique flags, display_order. 
+
+relationships 
+
+id, dataset_id, parent/child table+column, cardinality, required, junction metadata, status. 
+
+business_rules 
+
+id, dataset_id/table, rule type, safe expression/configuration, order, enabled. 
+
+generation_runs 
+
+id, dataset_id, schema_version_id, requested_by, seed, status, progress, row totals, timestamps, failure code. 
+
+generation_outputs 
+
+generation_id, object path/reference, format, size, checksum, created_at, expires_at, deleted_at. 
+
+quality_reports 
+
+generation_id, summarized structured report, score/status, created_at. 
+
+database_connections 
+
+id, owner_id, name, connector_type, host/port/database/service metadata, secret reference, retention mode, status. 
+
+templates 
+
+id, name, category, description, schema document, version, active, created_by, timestamps. 
+
+system_limits 
+
+key, value, unit, effective_at, updated_by. 
+
+audit_events 
+
+id, actor_id, action, target_type/id, result, safe metadata, timestamp; no secrets. 
+
+ 
+
+Data integrity rules 
+
+Use UUIDs for externally exposed identifiers. 
+
+Every owned resource includes an owner or dataset association used in authorization queries. 
+
+Schema versions are immutable after creation. 
+
+Deleting a user or dataset uses an approved lifecycle policy; avoid accidental hard deletion of audit records. 
+
+Use migrations for all database schema changes. 
+
+Use transactions for multi-entity changes such as version creation and generation submission. 
+
+Enforce uniqueness and foreign-key constraints at the database layer in addition to application validation. 
+
+9. Dataset lifecycle, autosave, and versioning 
+
+Dataset states 
+
+Draft: editable and not yet generated. 
+
+Ready: configuration passes validation. 
+
+Generating: active generation exists. 
+
+Available: output is retained and downloadable. 
+
+Output expired: history exists but file is unavailable. 
+
+Archived: hidden from ordinary lists but recoverable by owner/admin policy. 
+
+Failed: latest generation failed with safe diagnostic information. 
+
+Hybrid versioning 
+
+Edits autosave to a mutable working draft. Autosave does not create permanent versions. 
+
+Permanent versions are created when the user selects Save Version, starts generation, imports a schema, or restores an earlier version. 
+
+Starting generation first validates the draft and creates an immutable snapshot used by that generation. 
+
+Restoring older content creates a new current version referencing the source version. It never removes intervening history. 
+
+A version snapshot contains tables, columns, relationships, rules, distributions, case settings, seed behavior, input mode, and relevant limits. 
+
+Concurrent edit conflicts must be detected using revision/version checks rather than silently overwriting changes. 
+
+10. Input modes and privacy boundaries 
+
+Manual 
+
+Users create one or more tables, columns, constraints, distributions, relationships, and rules directly in the application. 
+
+CSV 
+
+Single mode accepts one CSV; connected mode accepts multiple CSV files. 
+
+Files are processed only to infer schema/configuration and candidate relationships. 
+
+Original rows are not copied to output and are not retained after inference processing. 
+
+The UI displays a clear notice instructing users to upload mock or sample files, not production data. 
+
+All inferred results are editable and require user review before generation. 
+
+Database metadata 
+
+Supported connectors: PostgreSQL, MySQL, Microsoft SQL Server, and Oracle. 
+
+Read metadata only: catalogs/schemas, tables, columns, native data types, nullability, defaults, primary keys, foreign keys, and supported uniqueness/check constraints. 
+
+Do not issue row-reading SELECT queries against source business tables. Do not sample, profile, copy, or cache source values. 
+
+Connection credentials must be read-only and never be returned in API responses or logs. 
+
+Operations that mutate source databases are prohibited. 
+
+The user selects included schemas/tables and reviews normalized metadata before saving. 
+
+Database-specific types map into a common internal type model. Unmapped types are flagged for manual resolution. 
+
+Schema JSON import/export 
+
+Export contains only schema/configuration, never generated rows or database secrets. 
+
+JSON includes a document format version for forward compatibility. 
+
+Import validates structure, supported types, reserved names, limits, relationships, and rules before creating a permanent schema version. 
+
+Unknown fields follow a defined compatibility policy and produce clear warnings/errors. 
+
+Templates 
+
+Templates may define single or connected schemas. 
+
+Using a template creates an independent user-owned dataset. 
+
+Administrators manage system templates and template versions. 
+
+Templates contain no real or production records. 
+
+11. Multi-table model and referential integrity 
+
+Supported structures 
+
+One-to-one. 
+
+One-to-many. 
+
+Many-to-many represented by an explicit junction table. 
+
+Multi-level acyclic dependency chains. 
+
+Multiple independent roots within one dataset are allowed if every component is valid. 
+
+Deferred/blocked structures 
+
+Circular dependency graphs. 
+
+Self-referencing relationships. 
+
+Composite foreign keys in initial Version 2 delivery. 
+
+Implicit many-to-many relationships without a junction table. 
+
+Relationship validation 
+
+Referenced tables and columns must exist. 
+
+Parent key must be primary or uniquely constrained. 
+
+Parent and child key types must be compatible after normalization. 
+
+Required child foreign keys cannot be nullable. 
+
+A one-to-one child foreign key must be unique. 
+
+Many-to-many junction tables contain valid foreign keys to both parents and may enforce pair uniqueness. 
+
+Dependency graph must be acyclic. 
+
+Every table must be reachable in a valid generation component. 
+
+Relationship suggestions from CSV/database metadata are never silently accepted; users can accept, edit, or remove them. 
+
+Generation algorithm contract 
+
+Validate complete schema and limits. 
+
+Create immutable schema version for the run. 
+
+Build dependency graph and topological generation order. 
+
+Initialize deterministic random state from approved seed behavior. 
+
+Generate parent/root tables and validate primary-key uniqueness. 
+
+Store generated parent keys in an in-memory run-scoped key registry. 
+
+Generate child non-key fields using existing type and case engines. 
+
+Assign valid child foreign keys from parent key registries according to cardinality and distribution rules. 
+
+Generate junction-table key pairs without forbidden duplicates. 
+
+Apply cross-column and derived rules in declared order. 
+
+Apply negative cases without corrupting protected keys unless an explicitly selected relationship-negative case requires it. 
+
+Run table-level quality validation. 
+
+Run cross-table referential-integrity validation. 
+
+Create reports and export artifacts. 
+
+Persist run summary and temporary file reference, then schedule expiry. 
+
+Relationship-aware negative cases 
+
+Version 2 may deliberately generate invalid relationship scenarios only when the user selects them. Such rows must be clearly labeled and excluded from the pass expectation for ordinary integrity checks. Supported candidates include orphan foreign key, null required foreign key, duplicate primary key, invalid foreign-key format, one-to-one uniqueness violation, junction duplicate pair, and cardinality violation. Every injected violation must have case metadata and a report entry identifying intentional versus accidental invalidity. 
+
+12. Cross-column rules and derived fields 
+
+Rule model 
+
+Rules are declarative configuration, not arbitrary Python, SQL, JavaScript, or shell code. 
+
+Rules reference columns using stable identifiers or validated names. 
+
+Rule evaluation order is explicit. 
+
+Cycles between derived fields are detected and rejected. 
+
+Type-check rule outputs before generation. 
+
+Missing-source behavior is configurable where applicable: reject configuration, produce null, or use an approved fallback. 
+
+Required rule families 
+
+Type 
+
+Examples 
+
+Derivation 
+
+full_name = first_name + last_name; total_amount = quantity * unit_price. 
+
+Conditional 
+
+status Active implies is_active true. 
+
+Comparison 
+
+end_date must be on or after start_date. 
+
+Mapping 
+
+country India implies currency INR. 
+
+Aggregation-safe 
+
+Line-level calculations only in initial release unless cross-row behavior is explicitly designed. 
+
+Lookup within generated context 
+
+Foreign key selection and parent-linked attributes from generated parent records. 
+
+ 
+
+Safety 
+
+The expression engine must use an allowlist of operators and functions. It must prohibit file access, network access, imports, reflection, process execution, database queries, and unbounded recursion. 
+
+13. Generation jobs, retention, and outputs 
+
+Background job states 
+
+Queued, Validating, Generating, Validating Output, Packaging, Completed, Failed, Cancelled, Expired. 
+
+Progress 
+
+Persist high-level progress and current phase. 
+
+Avoid false precision; report known phase progression and completed table counts. 
+
+Allow safe retry from the same immutable schema version and seed. 
+
+Prevent duplicate submissions through idempotency safeguards. 
+
+Cancellation stops future work where practical and cleans partial artifacts. 
+
+Temporary retention 
+
+Generated rows are not stored in PostgreSQL. 
+
+Artifacts are stored temporarily in Cloud Storage. 
+
+The output record stores format, size, checksum, object reference, created time, expiry, and deletion status. 
+
+The retention period is configurable by Admin. 
+
+Users may delete outputs earlier. 
+
+History remains after expiry and displays Output expired. 
+
+Download authorization is checked every time; storage paths are never treated as authorization. 
+
+Export structure 
+
+Single table: CSV, PSV, JSON. 
+
+Connected tables: ZIP with one file per table, relationship_manifest.json, relationship_report.json, quality_report.json, and a schema snapshot. 
+
+Safe deterministic filenames, stable column ordering, and explicit encoding. 
+
+Metadata columns remain included unless an approved export option changes this behavior. 
+
+14. Quality and integrity reports 
+
+Dataset summary 
+
+Dataset and generation identifiers, schema version, seed, input mode, start/end/status. 
+
+Rows per table, total rows, columns per table, output formats, and expiry. 
+
+Normal/abnormal counts and case-label distribution. 
+
+Table quality 
+
+Null, uniqueness, format, range, length, category, date, and type validation results. 
+
+Cross-column and derived-field rule results. 
+
+Intentional invalid cases separated from accidental failures. 
+
+Warnings and failures reference exact table, column, rule, and affected count. 
+
+Relationship integrity 
+
+Parent and child table/column. 
+
+Cardinality. 
+
+Evaluated child-reference count. 
+
+Unintentional invalid-reference count. 
+
+Intentional negative-case count. 
+
+Null foreign-key count where relevant. 
+
+Pass/fail status and diagnostic reason. 
+
+15. Administrative configuration and limits 
+
+Control 
+
+Behavior 
+
+Maximum tables 
+
+Default 5; configurable by Admin up to approved maximum 20. 
+
+Rows per table 
+
+Configured independently in Admin Portal. 
+
+Total rows per dataset 
+
+Configured independently in Admin Portal and includes junction tables. 
+
+Retention 
+
+Configurable generated-output lifetime. 
+
+Generation timeout 
+
+Configurable maximum duration. 
+
+Concurrent jobs 
+
+Configurable per-user and system limits. 
+
+Connector enablement 
+
+Admin may enable/disable each connector type. 
+
+Template status 
+
+Admin activates/deactivates templates. 
+
+Email settings 
+
+Provider configuration stored as secrets; operational status visible without secret values. 
+
+ 
+
+Frontend displays effective limits, but backend enforcement is authoritative. 
+
+Existing datasets above a lowered limit remain viewable but cannot generate until compliant. 
+
+Every admin change is audited with old and new safe values. 
+
+Limits are snapshotted with a generation run where relevant for reproducibility and diagnosis. 
+
+16. GCP deployment architecture 
+
+GCP capability 
+
+Responsibility 
+
+Cloud Run 
+
+Host FastAPI API and, if chosen, separate background worker/job services. Source-based deployment is preferred. 
+
+Cloud SQL for PostgreSQL 
+
+Managed application database for users, schemas, history, sharing, limits, and audit records. 
+
+Cloud Storage 
+
+Temporary generated files and downloadable packages. 
+
+Secret Manager 
+
+Database, token, email, encryption, and connector secrets. 
+
+Cloud Build 
+
+Build and deploy from repository source without a user-maintained Dockerfile requirement. 
+
+Cloud Logging / Monitoring 
+
+Operational logs, metrics, alerts, and error visibility. 
+
+IAM / service accounts 
+
+Least-privilege service-to-service authorization. 
+
+Email provider 
+
+Send reset and security emails through an approved configurable provider. 
+
+ 
+
+Deployment principles 
+
+No secrets committed to Git. 
+
+Use separate environment configuration for local, test, and deployed environments. 
+
+Run database migrations as a controlled deployment step. 
+
+Keep application PostgreSQL-standard and isolate GCP integrations behind interfaces. 
+
+Use least-privilege service accounts. 
+
+Use health/readiness checks and structured logging. 
+
+Avoid logging generated dataset contents, passwords, tokens, or connector credentials. 
+
+Use Cloud Run source deployment/buildpacks unless an approved requirement later introduces a Dockerfile. 
+
+17. Security, privacy, and audit requirements 
+
+Security controls 
+
+Hash passwords using an approved adaptive password hashing algorithm; never plaintext or reversible encryption. 
+
+Use HTTPS in deployed environments. 
+
+Validate all inputs server-side. 
+
+Use parameterized ORM/database operations. 
+
+Enforce object-level authorization for every dataset, version, share, generation, report, output, and connection. 
+
+Rate-limit authentication, reset, connection testing, and generation submission. 
+
+Protect against CSRF according to the chosen token transport. 
+
+Restrict CORS to approved origins in deployed environments. 
+
+Use secure secret handling and rotation processes. 
+
+Use safe errors that do not expose stack traces, credentials, SQL, internal paths, or whether an account exists. 
+
+Audit events 
+
+Login success/failure, logout, password reset request/completion, account disabled. 
+
+Dataset create/update/archive/delete. 
+
+Schema version created/restored/imported. 
+
+Share granted/changed/revoked. 
+
+Database connection created/tested/failed/deleted without credentials. 
+
+Generation submitted/completed/failed/cancelled/output deleted or expired. 
+
+Admin user, limit, template, connector, and retention changes. 
+
+Synthetic-only policy 
+
+No production-row sampling. 
+
+No source data persistence from database connectors. 
+
+No uploaded source-row copying into generated output. 
+
+No LLM or external model runtime. 
+
+No Kaggle or downloaded dataset dependency. 
+
+Clear UI notices at data-input points. 
+
+18. API contract plan 
+
+Endpoint names are proposed and can be refined during implementation. Authorization, validation, pagination, idempotency, and safe error contracts are mandatory. 
+
+Group 
+
+Candidate endpoints 
+
+Auth 
+
+POST /api/v2/auth/register, /login, /refresh, /logout, /forgot-password, /reset-password; GET /me. 
+
+Datasets 
+
+GET/POST /api/v2/datasets; GET/PATCH/DELETE /api/v2/datasets/{id}. 
+
+Schema 
+
+GET/PUT draft; POST versions; GET versions; POST versions/{version}/restore; import/export JSON. 
+
+Sharing 
+
+GET/POST shares; PATCH/DELETE share by user. 
+
+Inference 
+
+POST infer/csv; POST database-connections/test; GET metadata selections; POST normalize metadata. 
+
+Generation 
+
+POST generations; GET generation; POST cancel/retry; GET report/download. 
+
+Templates 
+
+GET templates; Admin CRUD/version/activation. 
+
+Admin 
+
+GET/PATCH limits; users; audit events; connector configuration/status. 
+
+ 
+
+Error response standard 
+
+Every error response should include a stable code, user-safe message, optional field-level details, and correlation identifier. It must not include secrets or raw internal exceptions. 
+
+19. Testing and quality gates 
+
+Testing layers 
+
+Layer 
+
+Required coverage 
+
+Unit 
+
+Models, validators, authorization policies, hashing/token helpers, type mapping, graph ordering, generation, business rules, reports, retention. 
+
+Integration 
+
+PostgreSQL repositories, migrations, transactions, connector metadata adapters using controlled test databases/mocks, Cloud Storage abstraction. 
+
+API 
+
+Authentication, authorization, ownership, sharing, validation, pagination, idempotency, error contracts. 
+
+Multi-table 
+
+Acyclic ordering, all cardinalities, junction tables, uniqueness, orphan prevention, deterministic output, intentional violation reporting. 
+
+Security 
+
+Cross-user access denial, role elevation denial, token expiry/revocation, reset-token reuse, rate limits, secret redaction. 
+
+Frontend 
+
+Component states, forms, protected routes, permissions, loading/error/empty states, keyboard accessibility. 
+
+End-to-end 
+
+Registration through dataset creation, generation, reporting, sharing, download, expiry, and regeneration. 
+
+Performance 
+
+Configured table/row maxima, packaging, memory behavior, concurrent jobs, timeout/cancellation. 
+
+ 
+
+Non-negotiable gates 
+
+All existing Version 1 tests pass. 
+
+New tests are strict and test behavior, not just execution. 
+
+No skipped failing tests without explicit documented approval. 
+
+Coverage does not materially regress without review; branch coverage is tracked for new conditional logic. 
+
+Migrations are tested from a clean database and from the prior supported schema. 
+
+Security-sensitive paths include negative tests. 
+
+Determinism tests compare same-seed output and verify expected differences for different seeds. 
+
+20. Acceptance criteria by capability 
+
+Capability 
+
+Acceptance criteria 
+
+Authentication 
+
+User can register/login/logout; password hash is not plaintext; disabled users are blocked; session refresh/revocation works. 
+
+Password reset 
+
+Generic request response; email token is expiring/single-use; reset revokes sessions; confirmation email sent. 
+
+Ownership 
+
+Unauthorised users cannot access another user’s private dataset through UI or direct API calls. 
+
+Sharing 
+
+Owner grants Viewer/Editor; permissions match matrix; removal is immediate; secrets never become shared. 
+
+Versioning 
+
+Draft autosaves; permanent versions occur at approved triggers; restore creates new version; history remains immutable. 
+
+Manual/CSV 
+
+Both single and connected creation flows work; CSV is not persisted or copied to output. 
+
+Connectors 
+
+All four connector types retrieve metadata only and normalize it; mutation and row sampling are absent/prohibited. 
+
+Multi-table 
+
+Supported acyclic relationships generate in dependency order; normal output has no unintended orphan references. 
+
+Many-to-many 
+
+Junction table contains valid references to both parents and enforces configured pair uniqueness. 
+
+Rules 
+
+Allowed rules evaluate deterministically; unsafe expressions and dependency cycles are rejected. 
+
+Limits 
+
+Frontend displays and backend enforces per-table, total-row, and table-count limits independently. 
+
+Jobs 
+
+Long generations run in background with status, safe retry/cancel behavior, and no duplicate submission. 
+
+Reports 
+
+Table quality and relationship integrity distinguish intentional negative cases from accidental violations. 
+
+Retention 
+
+Output downloads until expiry; early delete works; history remains and displays Output expired. 
+
+Templates 
+
+Users create independent datasets from active templates; Admin manages template lifecycle. 
+
+GCP 
+
+Source-based deployment works; Cloud Run connects securely to Cloud SQL; temporary artifacts use Cloud Storage; secrets are not in source. 
+
+ 
+
+21. Implementation sequencing 
+
+This sequence minimizes rework. Each phase is approved separately before coding begins. 
+
+Freeze architecture boundaries and create Version 2 branch/baseline tests. 
+
+Refactor frontend structure and establish design system without changing generation behavior. 
+
+Introduce PostgreSQL foundation, migrations, configuration, and repository pattern. 
+
+Implement authentication, email reset, protected routes, and User/Admin authorization. 
+
+Implement user-owned datasets, sharing, drafts, schema versions, and schema JSON import/export. 
+
+Implement Admin Portal limits, templates, audit events, and connector enablement. 
+
+Implement generation history, background-job model, temporary storage abstraction, and retention cleanup. 
+
+Implement cross-column rules and derived-field expression engine. 
+
+Implement connected schema models, graph validation, relationship editor, and multi-table generation. 
+
+Implement referential-integrity reports and connected ZIP exports. 
+
+Implement metadata-only connectors one at a time: PostgreSQL, MySQL, SQL Server, Oracle. 
+
+Complete GCP service adapters, source-based deployment, monitoring, security review, performance tests, and documentation. 
+
+22. AI coding assistant master prompt 
+
+Copy the following section into an AI coding assistant together with the current feature request and the current contents of the affected files. 
+
+You are implementing Version 2 of the Synthetic Test Data Generator, a React + Tailwind frontend and FastAPI backend application. Follow this specification as authoritative. 
+
+ 
+
+OPERATING RULES 
+
+1. Do not start coding until the user explicitly approves the exact feature requirements. 
+
+2. Work on one feature and one safe change at a time. 
+
+3. Before changing code, list the affected files and request their current complete contents. 
+
+4. Return complete updated file contents ready to copy and paste, with file path and relevant class/function identified. 
+
+5. Preserve all Version 1 behavior and existing tests unless an approved requirement intentionally changes the contract. 
+
+6. Never weaken or delete tests merely to make code pass. Add strict positive, negative, boundary, authorization, and regression tests. 
+
+7. No LLM, Ollama, external model, Kaggle dataset, downloaded dataset, production data, or production-row sampling. 
+
+8. All generated data is synthetic. CSV input is schema-inference-only. Database input is metadata-only. 
+
+9. Maintain deterministic output for the same normalized schema, relationships, configuration, and seed. 
+
+10. Do not log secrets, passwords, tokens, source rows, generated rows, or database credentials. 
+
+ 
+
+LOCKED PRODUCT SCOPE 
+
+- Professional frontend redesign with dashboard, responsive reusable components, dark mode, creation wizard, validations, progress, reports, and Admin Portal. 
+
+- Email/password registration, login, logout, secure sessions, and email password reset. Company SSO may be added later. 
+
+- Roles: User and Admin. Dataset permissions: Owner, Editor, Viewer. 
+
+- PostgreSQL application database stores users, datasets, schema versions, relationships, generation metadata, templates, limits, sharing, and audits. Generated rows are not stored in PostgreSQL. 
+
+- Generated outputs are retained temporarily in object storage, expire automatically, may be deleted early, and leave generation history marked Output expired. 
+
+- Hybrid schema versioning: mutable autosaved draft; permanent version on Save Version, generation, import, or restore. Restore creates a new version. 
+
+- Inputs: manual, CSV, schema JSON, template, and database metadata. 
+
+- Database connectors: PostgreSQL, MySQL, Microsoft SQL Server, and Oracle. Metadata only. No row reads, sampling, or mutations. 
+
+- Multi-table relationships: one-to-one, one-to-many, and many-to-many through explicit junction tables; multilevel acyclic graphs. Circular, self-referencing, and initial composite foreign keys are excluded. 
+
+- Configurable table count: default 5, admin maximum 20. Per-table and total-dataset row limits are separately configurable in Admin Portal. 
+
+- Cross-column rules and derived fields use a safe allowlisted expression engine, never eval/exec or arbitrary code. 
+
+- Background generation jobs, quality/integrity reports, generation history, schema templates, advanced search/filtering. 
+
+- Users cannot create API keys. 
+
+- Deploy on Google Cloud using Cloud Run, Cloud SQL for PostgreSQL, Cloud Storage, Secret Manager, Cloud Build, Logging/Monitoring, least-privilege IAM, and an approved configurable email provider. Prefer source-based deployment without a manually maintained Dockerfile. 
+
+ 
+
+IMPLEMENTATION QUALITY 
+
+- Enforce authorization in backend for every resource. 
+
+- Use database constraints and application validation. 
+
+- Use migrations and transactions. 
+
+- Use safe, stable error codes and correlation IDs. 
+
+- Protect primary and foreign keys from accidental negative-case mutation; explicitly labeled relationship-negative cases are handled separately. 
+
+- Generate parent tables before child tables using topological ordering and run-scoped key registries. 
+
+- Reports distinguish intentional negative cases from accidental failures. 
+
+- Existing Version 1 tests must remain green. Add branch, integration, API, security, frontend, end-to-end, and performance tests appropriate to the feature. 
+
+ 
+
+For the current feature, first restate the approved acceptance criteria, identify dependencies/risks, list affected files, and wait for the user to provide current file contents. Do not write implementation code before that. 
+
+23. Open implementation details requiring later feature-level approval 
+
+The fourteen product decisions are locked. The following low-level values still require approval during their relevant feature design; they must not be guessed silently. 
+
+Exact generated-file retention duration and cleanup schedule. 
+
+Exact access-token and refresh-token lifetimes and storage/transport method. 
+
+Email provider and sender identity. 
+
+Password length/strength policy and whether email verification is required at registration. 
+
+Default and maximum per-table/total row limits. 
+
+Generation timeout, concurrency limits, and retry policy. 
+
+Exact template catalogue and initial template schemas. 
+
+Database credential retention: session-only, saved secret reference, or both. 
+
+Metadata type mappings and unsupported-type policy for each connector. 
+
+Relationship key-selection distributions and child counts per parent. 
+
+Exact negative relationship-case catalogue and percentages. 
+
+Safe expression grammar, operators, and approved functions. 
+
+Search fields, sorting defaults, and pagination sizes. 
+
+GCP regions, network mode, Cloud SQL sizing, backup/HA policy, environment separation, and cost controls. 
+
+24. References 
+
+Internal sources used as baseline: Synthetic_Data_Generator.pptx; Synthetic_Test_Data_Generator_Checklist.xlsx; Synthetic_Data_Generator_Connected_Tables_Proposal 5.docx. 
+
+External implementation guidance consulted: OWASP Password Storage Cheat Sheet; OWASP Authentication Cheat Sheet; OWASP Forgot Password Cheat Sheet; Google Cloud documentation for Cloud Run and Cloud SQL for PostgreSQL. These sources guide security and deployment details; final organizational controls remain subject to company approval. 
+
+ 
+
+25. Final scope approval record 
+
+No implementation should begin until this document has been reviewed and the scope is approved. Later feature-level clarifications must be recorded as controlled decisions without silently changing locked requirements. 
+
+Approval item 
+
+Status / response 
+
+Version 2 master scope 
+
+Pending final approval 
+
+Locked decisions 1-14 
+
+Recorded in this document 
+
+Implementation authorized 
+
+No, until explicit approval 
+
+Approved by 
+
+ 
+
+Approval date 
+
+ 
+
+Notes / exceptions 
+
+ 
+
+ 

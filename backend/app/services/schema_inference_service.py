@@ -140,6 +140,8 @@ def infer_schema_from_dataframe(df):
                 .str.extract(r"(\d{4}-\d{2}-\d{2})")[0]
             )
 
+
+
             clean_dates = pd.to_datetime(
                 extracted_dates,
                 errors="coerce"

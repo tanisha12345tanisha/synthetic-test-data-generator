@@ -13,7 +13,7 @@ from app.services.schema_inference_service import infer_schema_from_csv
 
 app = FastAPI(
     title="Synthetic Test Data Generator",
-    description="LLM-free internal platform for generating realistic, non-sensitive synthetic datasets for pipeline testing and regression.",
+    description="Internal platform for generating realistic, non-sensitive synthetic datasets for pipeline testing and regression.",
     version="1.0.0"
 )
 
@@ -31,16 +31,7 @@ app.add_middleware(
 def root():
     return {
         "status": "running",
-        "service": "Synthetic Test Data Generator",
-        "mode": "LLM-free",
-        "data_policy": "synthetic-only"
-    }
-
-
-@app.get("/health")
-def health_check():
-    return {
-        "status": "healthy"
+        "service": "Synthetic Test Data Generator"
     }
 
 

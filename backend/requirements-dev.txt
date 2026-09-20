@@ -1,6 +1,4 @@
-
-pytest-cov 
-
+pytest-cov
 fastapi
 uvicorn
 faker

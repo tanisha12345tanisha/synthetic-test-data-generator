@@ -60,7 +60,6 @@ class TestInferIdPrefix:
 # ===========================================================================
 
 class TestNameHeuristics:
-
     @pytest.mark.parametrize("name,expected", [
         ("user_email", "email"),
         ("email_address", "email"),

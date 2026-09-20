@@ -57,31 +57,24 @@ const RESERVED_COLUMN_NAMES = new Set(["__case_type", "__case_labels", "__case_r
 function supportsNumericRange(type) {
   return NUMERIC_TYPES.has(type)
 }
-
 function supportsLengthRange(type) {
   return LENGTH_TYPES.has(type)
 }
-
 function supportsCategoryValues(type) {
   return type === "category"
 }
-
 function supportsPrefix(type) {
   return type === "id"
 }
-
 function supportsPattern(type) {
   return type === "regex"
 }
-
 function supportsDateRange(type) {
   return DATE_TIME_TYPES.has(type)
 }
-
 function supportsBooleanProbability(type) {
   return BOOLEAN_TYPES.has(type)
 }
-
 function hasAdvancedFields(type) {
   return (
     supportsNumericRange(type) ||
@@ -93,7 +86,6 @@ function hasAdvancedFields(type) {
     supportsBooleanProbability(type)
   )
 }
-
 function createEmptyColumn() {
   return {
     id: crypto.randomUUID(),
@@ -759,7 +751,6 @@ function App() {
       (total, check) => total + Number(check.rows_repaired || 0),
       0
     )
-
     return (
       <section className="mt-6 rounded-3xl border border-emerald-200 bg-white p-6 shadow-xl shadow-emerald-100/60">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -774,7 +765,6 @@ function App() {
               Shows all quality rules applied after generation and how many rows were repaired.
             </p>
           </div>
-
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-center">
             <p className="text-2xl font-bold text-emerald-700">
               {summary.data_quality_score ?? report.overall_score}
@@ -784,7 +774,6 @@ function App() {
             </p>
           </div>
         </div>
-
         <div className="mt-6 grid gap-4 md:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center">
             <p className="text-xl font-bold text-slate-950">
@@ -792,7 +781,6 @@ function App() {
             </p>
             <p className="text-xs text-slate-500">Rules checked</p>
           </div>
-
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-center">
             <p className="text-xl font-bold text-emerald-700">
               {summary.data_quality_rules_passed ?? report.rules_passed}
