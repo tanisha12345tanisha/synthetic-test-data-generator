@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.models.schema_models import DatasetRequest
@@ -6,15 +6,18 @@ from app.services.dataset_generation_service import generate_normal_dataset
 from app.services.export_service import (
     export_dataset_as_csv,
     export_dataset_as_json,
-    export_dataset_as_pipe
+    export_dataset_as_pipe,
 )
 from app.services.schema_inference_service import infer_schema_from_csv
 
 
 app = FastAPI(
     title="Synthetic Test Data Generator",
-    description="Internal platform for generating realistic, non-sensitive synthetic datasets for pipeline testing and regression.",
-    version="1.0.0"
+    description=(
+        "Internal platform for generating realistic, non-sensitive "
+        "synthetic datasets for pipeline testing and regression."
+    ),
+    version="1.0.0",
 )
 
 
@@ -31,7 +34,16 @@ app.add_middleware(
 def root():
     return {
         "status": "running",
-        "service": "Synthetic Test Data Generator"
+        "service": "Synthetic Test Data Generator",
+        "mode": "LLM-free",
+        "data_policy": "synthetic-only",
+    }
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
     }
 
 
@@ -50,12 +62,12 @@ def validate_schema(request: DatasetRequest):
                 "type": column.type,
                 "required": column.required,
                 "nullable": column.nullable,
-                "unique": column.unique
+                "unique": column.unique,
             }
             for column in request.columns
         ],
         "case_distribution": request.case_distribution.model_dump(),
-        "synthetic_only": True
+        "synthetic_only": True,
     }
 
 
@@ -84,10 +96,10 @@ def export_pipe(request: DatasetRequest):
 
 @app.post("/infer-schema")
 def infer_schema(file: UploadFile = File(...)):
-    if not file.filename.lower().endswith(".csv"):
+    if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(
             status_code=400,
-            detail="Only CSV files are supported for schema inference."
+            detail="Only CSV files are supported for schema inference.",
         )
 
     try:
@@ -95,5 +107,5 @@ def infer_schema(file: UploadFile = File(...)):
     except ValueError as error:
         raise HTTPException(
             status_code=400,
-            detail=str(error)
-        )
+            detail=str(error),
+        ) from error
