@@ -1,6 +1,9 @@
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.auth import router as auth_router
+from app.api.dependencies import get_current_user
+from app.db.models import User
 from app.models.schema_models import DatasetRequest
 from app.services.dataset_generation_service import generate_normal_dataset
 from app.services.export_service import (
@@ -23,12 +26,14 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
+app.include_router(auth_router)
 
 @app.get("/")
 def root():
@@ -48,7 +53,7 @@ def health():
 
 
 @app.post("/validate-schema")
-def validate_schema(request: DatasetRequest):
+def validate_schema(request: DatasetRequest, _user: User = Depends(get_current_user)):
     return {
         "valid": True,
         "message": "Schema is valid.",
@@ -72,30 +77,30 @@ def validate_schema(request: DatasetRequest):
 
 
 @app.post("/generate")
-def generate_dataset(request: DatasetRequest):
+def generate_dataset(request: DatasetRequest, _user: User = Depends(get_current_user)):
     return generate_normal_dataset(request)
 
 
 @app.post("/export/json")
-def export_json(request: DatasetRequest):
+def export_json(request: DatasetRequest, _user: User = Depends(get_current_user)):
     dataset_result = generate_normal_dataset(request)
     return export_dataset_as_json(dataset_result)
 
 
 @app.post("/export/csv")
-def export_csv(request: DatasetRequest):
+def export_csv(request: DatasetRequest, _user: User = Depends(get_current_user)):
     dataset_result = generate_normal_dataset(request)
     return export_dataset_as_csv(dataset_result)
 
 
 @app.post("/export/pipe")
-def export_pipe(request: DatasetRequest):
+def export_pipe(request: DatasetRequest, _user: User = Depends(get_current_user)):
     dataset_result = generate_normal_dataset(request)
     return export_dataset_as_pipe(dataset_result)
 
 
 @app.post("/infer-schema")
-def infer_schema(file: UploadFile = File(...)):
+def infer_schema(file: UploadFile = File(...), _user: User = Depends(get_current_user)):
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(
             status_code=400,

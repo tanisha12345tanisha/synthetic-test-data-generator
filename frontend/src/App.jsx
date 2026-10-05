@@ -1,4 +1,7 @@
 import { useState } from "react"
+import AuthProvider from "./context/AuthProvider"
+import { useAuth } from "./context/authContext"
+import AuthPage from "./pages/AuthPage"
 
 import {
   exportDataset,
@@ -42,7 +45,7 @@ const VIEW_BUILDER = "builder"
 const VIEW_GENERATOR = "generator"
 
 
-function App() {
+function AuthenticatedApp() {
   const { isDarkMode, toggleTheme } = useTheme()
 
   const [currentView, setCurrentView] = useState(VIEW_SOURCE)
@@ -516,4 +519,18 @@ function App() {
 }
 
 
-export default App
+
+
+function AppGate() {
+  const { user, loading, logout } = useAuth()
+  if (loading) return <div className="grid min-h-screen place-items-center bg-slate-950 text-white">Loading...</div>
+  if (!user) return <AuthPage />
+  return <>
+    <button onClick={logout} className="fixed right-5 top-5 z-50 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg dark:bg-white dark:text-slate-900">Sign out</button>
+    <AuthenticatedApp />
+  </>
+}
+
+export default function App() {
+  return <AuthProvider><AppGate /></AuthProvider>
+}

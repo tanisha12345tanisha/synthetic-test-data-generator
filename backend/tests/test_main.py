@@ -19,9 +19,15 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.dependencies import get_current_user
 from app.main import app
 
 
+async def override_current_user():
+    return object()
+
+
+app.dependency_overrides[get_current_user] = override_current_user
 client = TestClient(app)
 
 

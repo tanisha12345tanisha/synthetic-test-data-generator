@@ -1,9 +1,6 @@
+import { API_BASE_URL, getAuthHeaders } from "./apiClient"
 import { formatFileName } from "../utils/formatters"
 
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://127.0.0.1:8000"
 
 
 const EXPORT_CONFIG = {
@@ -52,9 +49,9 @@ async function postJson(endpoint, requestBody, fallbackMessage) {
     `${API_BASE_URL}${endpoint}`,
     {
       method: "POST",
-      headers: {
+      headers: getAuthHeaders({
         "Content-Type": "application/json"
-      },
+      }),
       body: JSON.stringify(requestBody)
     }
   )
@@ -83,6 +80,7 @@ export async function inferSchemaFromCsv(file) {
     `${API_BASE_URL}/infer-schema`,
     {
       method: "POST",
+      headers: getAuthHeaders(),
       body: formData
     }
   )
@@ -126,9 +124,9 @@ export async function exportDataset({
     `${API_BASE_URL}${exportConfig.endpoint}`,
     {
       method: "POST",
-      headers: {
+      headers: getAuthHeaders({
         "Content-Type": "application/json"
-      },
+      }),
       body: JSON.stringify(schemaRequest)
     }
   )
