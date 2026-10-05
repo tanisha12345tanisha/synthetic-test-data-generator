@@ -6,5 +6,8 @@ pandas
 pydantic
 python-multipart
 rstr
-pytest
 httpx
+sqlalchemy[asyncio]
+asyncpg
+alembic
+pydantic-settings

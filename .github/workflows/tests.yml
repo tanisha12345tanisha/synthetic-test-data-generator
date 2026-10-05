@@ -2,13 +2,50 @@ name: Tests
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
+    name: Backend tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: synthetic_data_generator_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synthetic_data_generator_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      APP_NAME: Synthetic Test Data Generator
+      APP_VERSION: 2.0.0
+      APP_ENVIRONMENT: test
+      APP_DEBUG: "false"
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/synthetic_data_generator_test
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/synthetic_data_generator_test
+      DATABASE_ECHO: "false"
+      ACCESS_TOKEN_SECRET: ci-access-token-secret-not-for-production
+      REFRESH_TOKEN_SECRET: ci-refresh-token-secret-not-for-production
 
     steps:
       - name: Check out repository
@@ -18,14 +55,28 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         working-directory: backend
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+          python -m pip install -r requirements-dev.txt
 
-      - name: Run tests
+      - name: Verify PostgreSQL connection
         working-directory: backend
         run: |
-          python -m pytest tests/ --cov=app --cov-report=term-missing
+          python -c "import asyncio; from app.db.health import check_database_health; result = asyncio.run(check_database_health()).to_dict(); print(result); assert result['connected'] is True"
+
+      - name: Apply database migrations
+        working-directory: backend
+        run: python -m alembic upgrade head
+
+      - name: Verify migration revision
+        working-directory: backend
+        run: python -m alembic current
+
+      - name: Run backend tests
+        working-directory: backend
+        run: python -m pytest --cov=app --cov-report=term-missing

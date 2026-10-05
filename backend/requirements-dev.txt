@@ -1,11 +1,6 @@
-pytest-cov
-fastapi
-uvicorn
-faker
-numpy
-pandas
-pydantic
-python-multipart
-rstr
+-r requirements.txt
+
 pytest
-httpx
+pytest-cov
+pytest-asyncio
+aiosqlite
