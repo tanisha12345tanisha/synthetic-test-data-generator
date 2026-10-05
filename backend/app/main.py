@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
 from app.api.datasets import router as datasets_router
+from app.api.generations import router as generations_router
 from app.api.dependencies import get_current_user
 from app.db.models import User
 from app.models.schema_models import DatasetRequest
@@ -38,6 +39,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(datasets_router)
+app.include_router(generations_router)
 
 @app.get("/")
 def root():

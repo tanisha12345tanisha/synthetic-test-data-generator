@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, DateTime, Enum, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,6 +22,7 @@ class GenerationRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Index("ix_generation_runs_dataset_id", "dataset_id"),
         Index("ix_generation_runs_requested_by", "requested_by"),
         Index("ix_generation_runs_status", "status"),
+        UniqueConstraint("requested_by", "idempotency_key", name="uq_generation_request_idempotency"),
     )
 
     dataset_id: Mapped[UUID] = mapped_column(
@@ -40,6 +41,13 @@ class GenerationRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         default=GenerationStatus.QUEUED,
         server_default=GenerationStatus.QUEUED.value,
     )
+    idempotency_key: Mapped[str] = mapped_column(
+        String(128),
+        nullable=False,
+        default=lambda: str(uuid4()),
+    )
+    current_phase: Mapped[str] = mapped_column(String(50), nullable=False, default="queued", server_default="queued")
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     progress_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     requested_row_total: Mapped[int] = mapped_column(Integer, nullable=False)
     generated_row_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")

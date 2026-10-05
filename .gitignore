@@ -4,3 +4,4 @@ backend/.coverage
 *.py[cod]
 frontend/node_modules/
 frontend/dist/
+backend/generated_artifacts/
