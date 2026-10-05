@@ -15,7 +15,7 @@ from sqlalchemy.pool import NullPool
 from app.core.config import get_settings
 
 
-EXPECTED_REVISION = "7de62977a915"
+EXPECTED_REVISION = "9a4f2c8d1e30"
 
 
 @pytest_asyncio.fixture

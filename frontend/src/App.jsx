@@ -2,6 +2,7 @@ import { useState } from "react"
 import AuthProvider from "./context/AuthProvider"
 import { useAuth } from "./context/authContext"
 import AuthPage from "./pages/AuthPage"
+import DatasetDashboardPage from "./pages/DatasetDashboardPage"
 
 import {
   exportDataset,
@@ -523,9 +524,12 @@ function AuthenticatedApp() {
 
 function AppGate() {
   const { user, loading, logout } = useAuth()
+  const [showDatasets, setShowDatasets] = useState(false)
   if (loading) return <div className="grid min-h-screen place-items-center bg-slate-950 text-white">Loading...</div>
   if (!user) return <AuthPage />
+  if (showDatasets) return <DatasetDashboardPage onClose={() => setShowDatasets(false)} />
   return <>
+    <button onClick={() => setShowDatasets(true)} className="fixed right-28 top-5 z-50 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg">Datasets</button>
     <button onClick={logout} className="fixed right-5 top-5 z-50 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg dark:bg-white dark:text-slate-900">Sign out</button>
     <AuthenticatedApp />
   </>

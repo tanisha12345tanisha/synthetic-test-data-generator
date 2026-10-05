@@ -1,0 +1,10 @@
+import { apiRequest } from "./apiClient"
+const json=(method,body)=>({method,body:JSON.stringify(body)})
+export const listSavedDatasets=()=>apiRequest("/datasets")
+export const createSavedDataset=(body)=>apiRequest("/datasets",json("POST",body))
+export const updateSavedDataset=(id,body)=>apiRequest(`/datasets/${id}`,json("PATCH",body))
+export const deleteSavedDataset=(id)=>apiRequest(`/datasets/${id}`,{method:"DELETE"})
+export const listSchemaVersions=(id)=>apiRequest(`/datasets/${id}/versions`)
+export const createSchemaVersion=(id)=>apiRequest(`/datasets/${id}/versions`,json("POST",{}))
+export const restoreSchemaVersion=(datasetId,versionId)=>apiRequest(`/datasets/${datasetId}/versions/${versionId}/restore`,{method:"POST"})
+export const shareSavedDataset=(id,body)=>apiRequest(`/datasets/${id}/shares`,json("POST",body))

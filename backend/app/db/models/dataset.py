@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import Enum, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -48,6 +48,9 @@ class Dataset(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
         default=DatasetStatus.DRAFT,
         server_default=DatasetStatus.DRAFT.value,
+    )
+    draft_schema_document: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default="{}"
     )
     current_draft_revision: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"

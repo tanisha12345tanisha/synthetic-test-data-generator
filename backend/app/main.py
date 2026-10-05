@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.datasets import router as datasets_router
 from app.api.dependencies import get_current_user
 from app.db.models import User
 from app.models.schema_models import DatasetRequest
@@ -34,6 +35,7 @@ app.add_middleware(
 
 
 app.include_router(auth_router)
+app.include_router(datasets_router)
 
 @app.get("/")
 def root():
